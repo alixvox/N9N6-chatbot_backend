@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /sessions/{sessionId} {
+      // Allow access only if the request is from our authenticated service account
+      allow read, write: if request.auth != null && request.auth.token.firebase.sign_in_provider == 'custom';
+    }
+  }
+}
