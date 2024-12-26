@@ -1,11 +1,11 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 class SessionLogger {
   constructor() {
-    this.logDir = path.join(__dirname, '../../logs');
-    this.sessionLogPath = path.join(this.logDir, 'sessions.log');
-    
+    this.logDir = path.join(__dirname, "../../logs");
+    this.sessionLogPath = path.join(this.logDir, "sessions.log");
+
     if (!fs.existsSync(this.logDir)) {
       fs.mkdirSync(this.logDir);
     }
@@ -15,20 +15,20 @@ class SessionLogger {
     const timestamp = new Date().toISOString();
     const logEntry = {
       timestamp,
-      ...sessionData
+      ...sessionData,
     };
 
     fs.appendFileSync(
-      this.sessionLogPath,
-      JSON.stringify(logEntry, null, 2) + '\n---\n',
-      'utf8'
+        this.sessionLogPath,
+        JSON.stringify(logEntry, null, 2) + "\n---\n",
+        "utf8",
     );
   }
 
   formatForOpenAI(sessionData) {
-    const formattedMessages = sessionData.conversationHistory.map(msg => ({
+    const formattedMessages = sessionData.conversationHistory.map((msg) => ({
       role: msg.role,
-      content: msg.content
+      content: msg.content,
     }));
 
     return {
@@ -36,16 +36,16 @@ class SessionLogger {
       metadata: {
         station_id: sessionData.stationId,
         user_id: sessionData.userId,
-        session_id: sessionData.sessionId
-      }
+        session_id: sessionData.sessionId,
+      },
     };
   }
 
   getSessionsLog() {
     if (fs.existsSync(this.sessionLogPath)) {
-      return fs.readFileSync(this.sessionLogPath, 'utf8');
+      return fs.readFileSync(this.sessionLogPath, "utf8");
     }
-    return 'No session logs yet.';
+    return "No session logs yet.";
   }
 }
 

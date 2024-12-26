@@ -1,15 +1,15 @@
-const admin = require('firebase-admin');
-const logger = require('./logger');
+const admin = require("firebase-admin");
+const logger = require("./logger");
 
 // Initialize Firebase
-const serviceAccount = require('../../path/to/your/serviceAccountKey.json');
+const serviceAccount = require("../../path/to/your/serviceAccountKey.json");
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
 });
 
 const db = admin.firestore();
-const sessionsRef = db.collection('sessions');
+const sessionsRef = db.collection("sessions");
 
 class SessionManager {
   constructor() {
@@ -25,7 +25,7 @@ class SessionManager {
 
     // Check Firebase
     const sessionDoc = await sessionsRef.doc(sessionId).get();
-    
+
     if (sessionDoc.exists) {
       const sessionData = sessionDoc.data();
       this.sessions.set(sessionId, sessionData);
@@ -40,35 +40,35 @@ class SessionManager {
       conversationHistory: [
         {
           role: "system",
-          content: `You are a helpful assistant for ${stationId} news station. You help users with information about news, weather, and station-specific inquiries.`
-        }
+          content: `You are a helpful assistant for ${stationId} news station. You help users with information about news, weather, and station-specific inquiries.`,
+        },
       ],
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
     };
-    
+
     // Save to Firebase
     await sessionsRef.doc(sessionId).set(newSession);
-    
+
     // Save to memory cache
     this.sessions.set(sessionId, newSession);
     logger.logSessionData(newSession);
-    
+
     return newSession;
   }
 
-  async updateSession(sessionId, message, role = 'user') {
+  async updateSession(sessionId, message, role = "user") {
     const session = this.sessions.get(sessionId);
     if (session) {
       session.conversationHistory.push({
         role,
-        content: message
+        content: message,
       });
       session.lastActivity = Date.now();
 
       // Update Firebase
       await sessionsRef.doc(sessionId).update({
         conversationHistory: session.conversationHistory,
-        lastActivity: session.lastActivity
+        lastActivity: session.lastActivity,
       });
 
       logger.logSessionData(session);
@@ -82,12 +82,12 @@ class SessionManager {
 
     // Query for old sessions
     const oldSessions = await sessionsRef
-      .where('lastActivity', '<', now - OLD_SESSION_THRESHOLD)
-      .get();
+        .where("lastActivity", "<", now - OLD_SESSION_THRESHOLD)
+        .get();
 
     // Delete old sessions
     const batch = db.batch();
-    oldSessions.forEach(doc => {
+    oldSessions.forEach((doc) => {
       batch.delete(doc.ref);
       this.sessions.delete(doc.id);
     });
