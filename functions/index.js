@@ -28,9 +28,20 @@ logger.info("Initializing Firebase Functions", {structuredData: true});
  */
 async function getSecret(secretName) {
   try {
-    const name = `projects/n9n6-chatbot-backend/secrets/\
-    ${secretName}/versions/latest`;
-    const [version] = await secretClient.accessSecretVersion({name});
+    const secretPath = [
+      "projects",
+      "n9n6-chatbot-backend",
+      "secrets",
+      secretName,
+      "versions",
+      "latest",
+    ].join("/");
+
+    const response = await secretClient.accessSecretVersion({
+      name: secretPath,
+    });
+    const [version] = response;
+
     return version.payload.data.toString("utf8");
   } catch (error) {
     logger.error(`Error accessing secret ${secretName}:`, error);
