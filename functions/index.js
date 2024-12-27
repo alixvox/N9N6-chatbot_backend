@@ -24,7 +24,8 @@ logger.info("Initializing Firebase Functions", {structuredData: true});
 exports.api = onRequest({
   cors: true,
   maxInstances: 10,
-  invoker: "public", // Allow unauthenticated access
+  invoker: 'public',  // Allow unauthenticated access
+  secrets: ['WEBHOOK_SECRET']  // Declare required secrets
 }, (request, response) => {
   logger.info("Received request", {
     path: request.path,
