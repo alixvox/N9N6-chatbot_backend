@@ -32,7 +32,8 @@ jobs:
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          project_id: n9n6-chatbot-backend
 
       - name: Deploy to Firebase
         run: |
-          firebase deploy --only functions --project ${{ secrets.FIREBASE_PROJECT_ID }}
+          firebase deploy --only functions --project n9n6-chatbot-backend
