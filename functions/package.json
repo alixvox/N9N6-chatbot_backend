@@ -5,12 +5,14 @@
     "lint": "eslint .",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
-    "start": "npm run shell",
+    "start": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "dev": "NODE_ENV=development node server.js",
+    "standalone": "node local-dev/server.js"
   },
   "engines": {
-    "node": "22"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {

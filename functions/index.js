@@ -1,19 +1,33 @@
 /**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * Firebase Cloud Functions entry point.
+ * Initializes Firebase Admin SDK and exports HTTP functions.
+ * @module index
  */
 
+require("dotenv").config();
 const {onRequest} = require("firebase-functions/v2/https");
+const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+// Initialize Firebase Admin SDK
+admin.initializeApp();
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+// Import the Express app
+const app = require("./app");
+
+// Log initialization
+logger.info("Initializing Firebase Functions", {structuredData: true});
+
+/**
+ * Main HTTP endpoint for the webhook API.
+ * Handles all incoming requests through the Express application.
+ */
+exports.api = onRequest((request, response) => {
+  logger.info("Received request", {
+    path: request.path,
+    method: request.method,
+    structuredData: true,
+  });
+
+  return app(request, response);
+});

@@ -1,5 +1,19 @@
-node_modules
+# Dependencies
+node_modules/
+functions/node_modules/
+
+# Environment
 .env
-logs
+functions/.env
+*.local
+*.log
+
+# Firebase
+functions/logs
 functions/config/*firebase*.json
+
+# Local Express server
+functions/server.json
+
+# IDE
 .vscode

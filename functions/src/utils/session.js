@@ -1,26 +1,49 @@
 const admin = require("firebase-admin");
 const logger = require("./logger");
 
-// Initialize Firebase
-const serviceAccount = require("../../path/to/your/serviceAccountKey.json");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
 const db = admin.firestore();
-const sessionsRef = db.collection("sessions");
 
-class SessionManager {
+/**
+ * @class SessionManager
+ * @description Manages chat session data for N6 and N9 chatbots,
+ * handling storage in both memory cache and Firestore. Includes
+ * functionality for session creation, updates, and cleanup of old sessions.
+ */class SessionManager {
+  /**
+   * Initializes session manager with separate memory caches for N6 and N9.
+   * Sets up periodic cleanup of old sessions.
+   */
   constructor() {
-    this.sessions = new Map(); // Keep in-memory cache
-    setInterval(() => this.cleanupOldSessions(), 1800000);
+    this.sessions = {
+      n6: new Map(),
+      n9: new Map(),
+    };
+    setInterval(() => this.cleanupOldSessions(), 1800000); // 30 minutes
   }
 
+  /**
+   * Gets the Firestore reference for a station's sessions collection.
+   * @param {string} stationId - Station identifier ('n6' or 'n9')
+   * @return {FirebaseFirestore.CollectionReference} - Firestore collection ref
+   */
+  getSessionsRef(stationId) {
+    return db.collection(`sessions_${stationId}`);
+  }
+
+  /**
+   * Retrieves an existing session or creates a new one if none exists.
+   * @param {string} sessionId - Unique session identifier
+   * @param {string} userId - User identifier
+   * @param {string} stationId - Station identifier ('n6' or 'n9')
+   * @return {Promise<Object>} Session data object
+   */
   async getOrCreateSession(sessionId, userId, stationId) {
+    const stationSessions = this.sessions[stationId];
+    const sessionsRef = this.getSessionsRef(stationId);
+
     // Check memory cache first
-    if (this.sessions.has(sessionId)) {
-      return this.sessions.get(sessionId);
+    if (stationSessions.has(sessionId)) {
+      return stationSessions.get(sessionId);
     }
 
     // Check Firebase
@@ -28,7 +51,7 @@ class SessionManager {
 
     if (sessionDoc.exists) {
       const sessionData = sessionDoc.data();
-      this.sessions.set(sessionId, sessionData);
+      stationSessions.set(sessionId, sessionData);
       return sessionData;
     }
 
@@ -40,24 +63,42 @@ class SessionManager {
       conversationHistory: [
         {
           role: "system",
-          content: `You are a helpful assistant for ${stationId} news station. You help users with information about news, weather, and station-specific inquiries.`,
+          content: stationId === "n6" ?
+        `You are a helpful assistant for News on 6 in Tulsa, OK. 
+           You help users with information about news, weather, and 
+           station-specific inquiries.` :
+        `You are a helpful assistant for News on 9 in Oklahoma City, OK. 
+           You help users with information about news, weather, and 
+           station-specific inquiries.`,
         },
       ],
       lastActivity: Date.now(),
     };
 
+
     // Save to Firebase
     await sessionsRef.doc(sessionId).set(newSession);
 
     // Save to memory cache
-    this.sessions.set(sessionId, newSession);
+    stationSessions.set(sessionId, newSession);
     logger.logSessionData(newSession);
 
     return newSession;
   }
 
-  async updateSession(sessionId, message, role = "user") {
-    const session = this.sessions.get(sessionId);
+  /**
+   * Updates an existing session with a new message.
+   * @param {string} sessionId - Session identifier
+   * @param {string} message - Message content
+   * @param {string} role - Message role ('user' or 'assistant')
+   * @param {string} stationId - Station identifier ('n6' or 'n9')
+   * @return {Promise<Object|null>} Updated session data or null if not found
+   */
+  async updateSession(sessionId, message, role = "user", stationId) {
+    const stationSessions = this.sessions[stationId];
+    const sessionsRef = this.getSessionsRef(stationId);
+
+    const session = stationSessions.get(sessionId);
     if (session) {
       session.conversationHistory.push({
         role,
@@ -76,27 +117,42 @@ class SessionManager {
     return session;
   }
 
+  /**
+   * Removes sessions that have been inactive for more than an hour.
+   * Cleans up both memory cache and Firestore storage.
+   * @return {Promise<void>}
+   */
   async cleanupOldSessions() {
     const now = Date.now();
     const OLD_SESSION_THRESHOLD = 3600000; // 1 hour
 
-    // Query for old sessions
-    const oldSessions = await sessionsRef
-        .where("lastActivity", "<", now - OLD_SESSION_THRESHOLD)
-        .get();
+    for (const stationId of ["n6", "n9"]) {
+      const sessionsRef = this.getSessionsRef(stationId);
 
-    // Delete old sessions
-    const batch = db.batch();
-    oldSessions.forEach((doc) => {
-      batch.delete(doc.ref);
-      this.sessions.delete(doc.id);
-    });
+      // Query for old sessions
+      const oldSessions = await sessionsRef
+          .where("lastActivity", "<", now - OLD_SESSION_THRESHOLD)
+          .get();
 
-    await batch.commit();
+      // Delete old sessions
+      const batch = db.batch();
+      oldSessions.forEach((doc) => {
+        batch.delete(doc.ref);
+        this.sessions[stationId].delete(doc.id);
+      });
+
+      await batch.commit();
+    }
   }
 
-  async getOpenAIFormat(sessionId) {
-    const session = await this.getOrCreateSession(sessionId);
+  /**
+   * Formats session data for OpenAI API consumption.
+   * @param {string} sessionId - Session identifier
+   * @param {string} stationId - Station identifier ('n6' or 'n9')
+   * @return {Promise<Object|null>} Formatted session data or null if not found
+   */
+  async getOpenAIFormat(sessionId, stationId) {
+    const session = await this.getOrCreateSession(sessionId, null, stationId);
     if (session) {
       return logger.formatForOpenAI(session);
     }
@@ -105,4 +161,3 @@ class SessionManager {
 }
 
 module.exports = new SessionManager();
-
