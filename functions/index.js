@@ -21,7 +21,11 @@ logger.info("Initializing Firebase Functions", {structuredData: true});
  * Main HTTP endpoint for the webhook API.
  * Handles all incoming requests through the Express application.
  */
-exports.api = onRequest((request, response) => {
+exports.api = onRequest({
+  cors: true,
+  maxInstances: 10,
+  invoker: "public", // Allow unauthenticated access
+}, (request, response) => {
   logger.info("Received request", {
     path: request.path,
     method: request.method,
