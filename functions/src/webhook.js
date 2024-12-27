@@ -8,25 +8,33 @@ const express = require("express");
 const router = express.Router();
 const sessionManager = require("./utils/session");
 const logger = require("./utils/logger");
-const functions = require("firebase-functions/v2");
 
-const verifyWebhookSecret = (req, res, next) => {
-  const secret = functions.params.WEBHOOK_SECRET;
-  if (!secret) {
-    logger.error("WEBHOOK_SECRET parameter not set");
-    return res.status(500).json({error: "Server configuration error"});
+const verifyWebhookSecret = async (req, res, next) => {
+  try {
+    const secret = req.webhookSecret;
+    if (!secret) {
+      logger.error("WEBHOOK_SECRET not available in request context");
+      return res.status(500).json({error: "Server configuration error"});
+    }
+
+    const authHeader = req.headers.authorization;
+    const expectedAuth = `Basic ${secret}`;
+
+    if (!authHeader || authHeader !== expectedAuth) {
+      logger.error("Invalid Authorization header", {
+        hasHeader: !!authHeader,
+        matches: authHeader === expectedAuth,
+      });
+      return res.status(401).json({error: "Unauthorized"});
+    }
+
+    next();
+  } catch (error) {
+    logger.error("Error verifying webhook secret", error);
+    return res.status(500).json({error: "Internal server error"});
   }
-
-  const authHeader = req.headers.authorization;
-  const expectedAuth = `Basic ${secret}`;
-
-  if (!authHeader || authHeader !== expectedAuth) {
-    logger.error("Invalid Authorization header");
-    return res.status(401).json({error: "Unauthorized"});
-  }
-
-  next();
 };
+
 
 /**
  * Handles the webhook response for both N9 and N6 chatbots
