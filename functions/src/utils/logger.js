@@ -3,8 +3,7 @@
  * Handles writing session data to log files and formatting for OpenAI.
  * @class SessionLogger
  */
-const fs = require("fs");
-const path = require("path");
+const logger = require("firebase-functions/logger");
 
 /**
  * @class SessionLogger
@@ -14,86 +13,117 @@ const path = require("path");
  */
 class SessionLogger {
   /**
-   * Creates a new SessionLogger instance and initializes log directory.
+   * Creates a new SessionLogger instance.
+   * Initializes in-memory storage for recent logs with separate arrays for
+   * N6, N9, and error logs. Memory storage is limited to prevent excessive
+   * memory usage in the cloud environment.
+   * @constructor
+   * @memberof SessionLogger
+   * @property {Object} memoryLogs - Object containing arrays for storing
+   * recent logs
+   * @property {Array} memoryLogs.n6 - Array storing recent N6 station logs
+   * @property {Array} memoryLogs.n9 - Array storing recent N9 station logs
+   * @property {Array} memoryLogs.error - Array storing recent error logs
+   * @property {number} maxMemoryLogs - Maximum number of logs to keep in
+   * memory per type
    */
   constructor() {
-    this.logDir = path.join(__dirname, "../../logs");
-    this.sessionLogPath = path.join(this.logDir, "sessions.log");
-    this.errorLogPath = path.join(this.logDir, "error.log");
-
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir);
-    }
+    // Initialize memory storage for recent logs (useful for getSessionsLog)
+    this.memoryLogs = {
+      n6: [],
+      n9: [],
+      error: [],
+    };
+    // Maximum number of logs to keep in memory
+    this.maxMemoryLogs = 100;
   }
 
   /**
-   * Logs error messages to error.log
+   * Logs error messages using Firebase logger
    * @param {string} message - Error message
    * @param {Error|Object} error - Error object or details
    */
   error(message, error) {
-    const timestamp = new Date().toISOString();
-    const errorEntry = {
-      timestamp,
-      message,
-      error: error instanceof Error ? {
-        message: error.message,
-        stack: error.stack,
-      } : error,
-    };
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+    } : error;
 
-    fs.appendFileSync(
-        this.errorLogPath,
-        JSON.stringify(errorEntry, null, 2) + "\n---\n",
-        "utf8",
-    );
+    // Log to Firebase
+    logger.error(message, {
+      error: errorDetails,
+      structuredData: true,
+    });
+
+    // Store in memory for recent logs access
+    this.memoryLogs.error.unshift({
+      timestamp: new Date().toISOString(),
+      message,
+      error: errorDetails,
+    });
+
+    // Trim memory logs if needed
+    if (this.memoryLogs.error.length > this.maxMemoryLogs) {
+      this.memoryLogs.error.pop();
+    }
   }
 
   /**
-     * Logs warning messages
-     * @param {string} message - Warning message
-     * @param {Object} [details] - Additional warning details
-     */
+   * Logs warning messages using Firebase logger
+   * @param {string} message - Warning message
+   * @param {Object} [details] - Additional warning details
+   */
   warn(message, details = {}) {
-    const timestamp = new Date().toISOString();
-    const warnEntry = {
-      timestamp,
+    // Log to Firebase
+    logger.warn(message, {
+      ...details,
+      structuredData: true,
+    });
+
+    // Store in memory for recent logs access
+    this.memoryLogs.error.unshift({
+      timestamp: new Date().toISOString(),
       level: "WARN",
       message,
       ...details,
-    };
+    });
 
-    fs.appendFileSync(
-        this.errorLogPath,
-        JSON.stringify(warnEntry, null, 2) + "\n---\n",
-        "utf8",
-    );
+    // Trim memory logs if needed
+    if (this.memoryLogs.error.length > this.maxMemoryLogs) {
+      this.memoryLogs.error.pop();
+    }
   }
 
   /**
-   * Logs session data to a station-specific log file.
+   * Logs session data using Firebase logger
    * @param {Object} sessionData - The session data to log
    * @param {string} sessionData.stationId - Station identifier ('n6' or 'n9')
    * @param {string} sessionData.sessionId - Unique session identifier
    * @param {Array} sessionData.conversationHistory - Array of session messages
    */
   logSessionData(sessionData) {
-    const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
+    const {stationId, sessionId, userId, conversationHistory} = sessionData;
+
+    // Log to Firebase with structured data
+    logger.info("Session activity", {
+      stationId,
+      sessionId,
+      userId,
+      messageCount: conversationHistory.length,
+      lastMessage: conversationHistory[conversationHistory.length - 1]?.content,
+      structuredData: true,
+    });
+
+    // Store in memory for recent logs access
+    this.memoryLogs[stationId]?.unshift({
+      timestamp: new Date().toISOString(),
       ...sessionData,
-    };
+    });
 
-    const stationLogPath = path.join(
-        this.logDir,
-        `sessions_${sessionData.stationId}.log`,
-    );
-
-    fs.appendFileSync(
-        stationLogPath,
-        JSON.stringify(logEntry, null, 2) + "\n---\n",
-        "utf8",
-    );
+    // Trim memory logs if needed
+    if (this.memoryLogs[stationId]?.length > this.maxMemoryLogs) {
+      this.memoryLogs[stationId].pop();
+    }
   }
 
   /**
@@ -118,7 +148,8 @@ class SessionLogger {
   }
 
   /**
-   * Retrieves all session logs.
+   * Retrieves recent session logs from memory.
+   * Note: This will only show logs from the current instance's memory.
    * @return {string} Combined log content
    */
   getSessionsLog() {
@@ -126,16 +157,23 @@ class SessionLogger {
     let allLogs = "";
 
     for (const station of stations) {
-      const stationLogPath = path.join(this.logDir, `sessions_${station}.log`);
-      if (fs.existsSync(stationLogPath)) {
+      if (this.memoryLogs[station]?.length > 0) {
         allLogs += `\n=== ${station.toUpperCase()} Logs ===\n`;
-        allLogs += fs.readFileSync(stationLogPath, "utf8");
+        allLogs += this.memoryLogs[station]
+            .map((log) => JSON.stringify(log, null, 2))
+            .join("\n---\n");
       }
     }
 
-    return allLogs || "No session logs yet.";
+    if (this.memoryLogs.error.length > 0) {
+      allLogs += "\n=== Error Logs ===\n";
+      allLogs += this.memoryLogs.error
+          .map((log) => JSON.stringify(log, null, 2))
+          .join("\n---\n");
+    }
+
+    return allLogs || "No session logs available in current instance.";
   }
 }
 
 module.exports = new SessionLogger();
-
