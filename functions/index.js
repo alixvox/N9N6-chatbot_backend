@@ -5,6 +5,7 @@
  */
 
 const {onRequest} = require("firebase-functions/v2/https");
+const {getSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 
@@ -13,6 +14,9 @@ admin.initializeApp();
 
 // Import the Express app
 const app = require("./app");
+
+// Define secret
+const webhookSecret = getSecret("WEBHOOK_SECRET");
 
 // Log initialization
 logger.info("Initializing Firebase Functions", {structuredData: true});
@@ -25,8 +29,10 @@ exports.api = onRequest({
   cors: true,
   maxInstances: 10,
   invoker: "public", // Allow unauthenticated access
-  secrets: ["WEBHOOK_SECRET"], // Declare required secrets
-}, (request, response) => {
+}, async (request, response) => {
+  // Set the secret in the request context for access in webhook.js
+  request.webhookSecret = await webhookSecret.value();
+
   logger.info("Received request", {
     path: request.path,
     method: request.method,
