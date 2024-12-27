@@ -5,21 +5,38 @@
  */
 
 const {onRequest} = require("firebase-functions/v2/https");
-const {getSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
+const {SecretManagerServiceClient} = require("@google-cloud/secret-manager");
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
 
+// Initialize Secret Manager client
+const secretClient = new SecretManagerServiceClient();
+
 // Import the Express app
 const app = require("./app");
 
-// Define secret
-const webhookSecret = getSecret("WEBHOOK_SECRET");
-
 // Log initialization
 logger.info("Initializing Firebase Functions", {structuredData: true});
+
+/**
+ * Retrieves the latest version of a secret
+ * @param {string} secretName - Name of the secret to retrieve
+ * @return {Promise<string>} The secret value
+ */
+async function getSecret(secretName) {
+  try {
+    const name = `projects/n9n6-chatbot-backend/secrets/\
+    ${secretName}/versions/latest`;
+    const [version] = await secretClient.accessSecretVersion({name});
+    return version.payload.data.toString("utf8");
+  } catch (error) {
+    logger.error(`Error accessing secret ${secretName}:`, error);
+    throw error;
+  }
+}
 
 /**
  * Main HTTP endpoint for the webhook API.
@@ -30,14 +47,19 @@ exports.api = onRequest({
   maxInstances: 10,
   invoker: "public", // Allow unauthenticated access
 }, async (request, response) => {
-  // Set the secret in the request context for access in webhook.js
-  request.webhookSecret = await webhookSecret.value();
+  try {
+    // Get the webhook secret and attach it to the request
+    request.webhookSecret = await getSecret("WEBHOOK_SECRET");
 
-  logger.info("Received request", {
-    path: request.path,
-    method: request.method,
-    structuredData: true,
-  });
+    logger.info("Received request", {
+      path: request.path,
+      method: request.method,
+      structuredData: true,
+    });
 
-  return app(request, response);
+    return app(request, response);
+  } catch (error) {
+    logger.error("Error processing request:", error);
+    return response.status(500).json({error: "Internal server error"});
+  }
 });
