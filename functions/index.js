@@ -4,7 +4,6 @@
  * @module index
  */
 
-require("dotenv").config();
 const {onRequest} = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");

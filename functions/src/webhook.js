@@ -8,18 +8,19 @@ const express = require("express");
 const router = express.Router();
 const sessionManager = require("./utils/session");
 const logger = require("./utils/logger");
+const functions = require("firebase-functions/v2");
 
 const verifyWebhookSecret = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    logger.error("Missing Authorization header");
-    return res.status(401).json({error: "Unauthorized"});
+  const secret = functions.params.WEBHOOK_SECRET;
+  if (!secret) {
+    logger.error("WEBHOOK_SECRET parameter not set");
+    return res.status(500).json({error: "Server configuration error"});
   }
 
-  // Expected Basic auth value from WatsonX
-  const expectedAuth = `Basic ${process.env.WEBHOOK_SECRET}`;
+  const authHeader = req.headers.authorization;
+  const expectedAuth = `Basic ${secret}`;
 
-  if (authHeader !== expectedAuth) {
+  if (!authHeader || authHeader !== expectedAuth) {
     logger.error("Invalid Authorization header");
     return res.status(401).json({error: "Unauthorized"});
   }

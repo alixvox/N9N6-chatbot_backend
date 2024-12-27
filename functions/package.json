@@ -5,7 +5,7 @@
     "lint": "eslint .",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
-    "start": "firebase emulators:start --only functions",
+    "start": "firebase emulators:start --only functions --env-file functions/.env",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "dev": "NODE_ENV=development node server.js",
