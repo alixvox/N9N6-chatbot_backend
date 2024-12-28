@@ -61,7 +61,7 @@ const handleWebhookResponse = async (req, res, stationId) => {
 
     if (!messageText) {
       const welcomeMessage = [
-        `Hi! I'm Newsy, your ${stationName} chatbot assistant.`,
+        `Hi! I’m Newsy, an AI assistant for ${stationName}.`,
         "How can I help you today?",
       ].join(" ");
 

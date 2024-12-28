@@ -24,7 +24,6 @@ const db = admin.firestore();
       n6: new Map(),
       n9: new Map(),
     };
-    setInterval(() => this.cleanupOldSessions(), 1800000); // 30 minutes
   }
 
   /**
@@ -133,33 +132,6 @@ const db = admin.firestore();
 
     logger.logSessionData(session);
     return session;
-  }
-  /**
-   * Removes sessions that have been inactive for more than an hour.
-   * Cleans up both memory cache and Firestore storage.
-   * @return {Promise<void>}
-   */
-  async cleanupOldSessions() {
-    const now = Date.now();
-    const OLD_SESSION_THRESHOLD = 3600000; // 1 hour
-
-    for (const stationId of ["n6", "n9"]) {
-      const sessionsRef = this.getSessionsRef(stationId);
-
-      // Query for old sessions
-      const oldSessions = await sessionsRef
-          .where("lastActivity", "<", now - OLD_SESSION_THRESHOLD)
-          .get();
-
-      // Delete old sessions
-      const batch = db.batch();
-      oldSessions.forEach((doc) => {
-        batch.delete(doc.ref);
-        this.sessions[stationId].delete(doc.id);
-      });
-
-      await batch.commit();
-    }
   }
 
   /**
