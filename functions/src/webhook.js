@@ -35,7 +35,6 @@ const verifyWebhookSecret = async (req, res, next) => {
   }
 };
 
-
 /**
  * Handles the webhook response for both N9 and N6 chatbots
  * @param {Object} req - Express request object
@@ -51,6 +50,8 @@ const handleWebhookResponse = async (req, res, stationId) => {
       },
     } = req.body;
 
+    const stationName = stationId === "n6" ? "News on 6" : "News 9";
+
     // Always create/get session first
     await sessionManager.getOrCreateSession(
         sessionId,
@@ -60,7 +61,7 @@ const handleWebhookResponse = async (req, res, stationId) => {
 
     if (!messageText) {
       const welcomeMessage = [
-        `Hi! I'm Newsy, your ${stationId} chatbot assistant.`,
+        `Hi! I'm Newsy, your ${stationName} chatbot assistant.`,
         "How can I help you today?",
       ].join(" ");
 
