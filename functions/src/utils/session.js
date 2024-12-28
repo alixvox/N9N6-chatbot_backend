@@ -1,3 +1,9 @@
+/**
+ * Session manager for N6 and N9 chatbots.
+ * Handles creating, updating and deleting chat session
+ * history onto Firebase.
+ * @class SessionManager
+ */
 const admin = require("firebase-admin");
 const logger = require("./logger");
 
@@ -92,31 +98,42 @@ const db = admin.firestore();
    * @param {string} message - Message content
    * @param {string} role - Message role ('user' or 'assistant')
    * @param {string} stationId - Station identifier ('n6' or 'n9')
+   * @param {Object} [sessionData] - Optional existing session data to
+   * avoid extra reads
    * @return {Promise<Object|null>} Updated session data or null if not found
    */
-  async updateSession(sessionId, message, role = "user", stationId) {
+  async updateSession(
+      sessionId, message, role = "user", stationId, sessionData = null,
+  ) {
     const stationSessions = this.sessions[stationId];
     const sessionsRef = this.getSessionsRef(stationId);
 
-    const session = stationSessions.get(sessionId);
-    if (session) {
-      session.conversationHistory.push({
-        role,
-        content: message,
-      });
-      session.lastActivity = Date.now();
+    // Use provided session data or cached data
+    let session = sessionData || stationSessions.get(sessionId);
 
-      // Update Firebase
-      await sessionsRef.doc(sessionId).update({
-        conversationHistory: session.conversationHistory,
-        lastActivity: session.lastActivity,
-      });
-
-      logger.logSessionData(session);
+    if (!session) {
+    // Only perform a read if we absolutely have to
+      const sessionDoc = await sessionsRef.doc(sessionId).get();
+      if (!sessionDoc.exists) return null;
+      session = sessionDoc.data();
+      stationSessions.set(sessionId, session);
     }
+
+    session.conversationHistory.push({
+      role,
+      content: message,
+    });
+    session.lastActivity = Date.now();
+
+    // Update Firebase
+    await sessionsRef.doc(sessionId).update({
+      conversationHistory: session.conversationHistory,
+      lastActivity: session.lastActivity,
+    });
+
+    logger.logSessionData(session);
     return session;
   }
-
   /**
    * Removes sessions that have been inactive for more than an hour.
    * Cleans up both memory cache and Firestore storage.

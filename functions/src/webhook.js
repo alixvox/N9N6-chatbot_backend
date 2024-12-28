@@ -52,8 +52,8 @@ const handleWebhookResponse = async (req, res, stationId) => {
 
     const stationName = stationId === "n6" ? "News on 6" : "News 9";
 
-    // Always create/get session first
-    await sessionManager.getOrCreateSession(
+    // Get or create session once and reuse the data
+    const session = await sessionManager.getOrCreateSession(
         sessionId,
         userId,
         stationId,
@@ -65,12 +65,13 @@ const handleWebhookResponse = async (req, res, stationId) => {
         "How can I help you today?",
       ].join(" ");
 
-      // Now update session with welcome message
+      // Pass session data to avoid another read
       await sessionManager.updateSession(
           sessionId,
           welcomeMessage,
           "assistant",
-          stationId, // Make sure to pass stationId here
+          stationId,
+          session,
       );
 
       const responseBody = {
@@ -86,11 +87,21 @@ const handleWebhookResponse = async (req, res, stationId) => {
       return res.json(responseBody);
     }
 
-    // Handle non-empty messages
+    // Handle non-empty messages - pass session data to avoid reads
     await sessionManager.updateSession(
-        sessionId, messageText, "user", stationId);
+        sessionId, messageText, "user", stationId, session);
 
     const responseText = "Message received! OpenAI integration coming soon.";
+
+    // Update with assistant response - pass session data to avoid reads
+    await sessionManager.updateSession(
+        sessionId,
+        responseText,
+        "assistant",
+        stationId,
+        session,
+    );
+
     const responseBody = {
       output: {
         generic: [{
@@ -99,13 +110,6 @@ const handleWebhookResponse = async (req, res, stationId) => {
         }],
       },
     };
-
-    await sessionManager.updateSession(
-        sessionId,
-        responseText,
-        "assistant",
-        stationId,
-    );
 
     res.set("X-Watson-Assistant-Webhook-Return", "true");
     return res.json(responseBody);
