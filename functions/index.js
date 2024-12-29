@@ -29,8 +29,8 @@ exports.api = onRequest({
   invoker: "public", // Allow unauthenticated access
 }, async (request, response) => {
   try {
-    // Get the webhook secret and attach it to the request
-    request.webhookSecret = await secretsManager.getSecret("WEBHOOK_SECRET");
+    // Get the webhook auth and attach it to the request
+    request.auth = await secretsManager.getSecret("WATSONX_AUTH");
 
     logger.info("Received request", {
       path: request.path,

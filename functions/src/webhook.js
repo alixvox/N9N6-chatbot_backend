@@ -10,16 +10,16 @@ const sessionManager = require("./utils/session-manager");
 const logger = require("./utils/logger");
 const openAIManager = require("./utils/openai-manager");
 
-const verifyWebhookSecret = async (req, res, next) => {
+const verifyWatsonxAuth = async (req, res, next) => {
   try {
-    const secret = req.webhookSecret;
-    if (!secret) {
-      logger.error("WEBHOOK_SECRET not available in request context");
+    const auth = req.auth;
+    if (!auth) {
+      logger.error("Auth from WatsonX not available in request context");
       return res.status(500).json({error: "Server configuration error"});
     }
 
     const authHeader = req.headers.authorization;
-    const expectedAuth = `Basic ${secret}`;
+    const expectedAuth = `Basic ${auth}`;
 
     if (!authHeader || authHeader !== expectedAuth) {
       logger.error("Invalid Authorization header", {
@@ -31,7 +31,7 @@ const verifyWebhookSecret = async (req, res, next) => {
 
     next();
   } catch (error) {
-    logger.error("Error verifying webhook secret", error);
+    logger.error("Error verifying WatsonX webhook auth", error);
     return res.status(500).json({error: "Internal server error"});
   }
 };
@@ -120,12 +120,12 @@ const handleWebhookResponse = async (req, res, stationId) => {
 };
 
 // N9 chatbot endpoint
-router.post("/n9", verifyWebhookSecret, async (req, res) => {
+router.post("/n9", verifyWatsonxAuth, async (req, res) => {
   await handleWebhookResponse(req, res, "n9");
 });
 
 // N6 chatbot endpoint
-router.post("/n6", verifyWebhookSecret, async (req, res) => {
+router.post("/n6", verifyWatsonxAuth, async (req, res) => {
   await handleWebhookResponse(req, res, "n6");
 });
 
