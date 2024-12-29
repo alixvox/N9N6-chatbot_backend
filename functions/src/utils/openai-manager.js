@@ -127,7 +127,7 @@ const processMessage = async (
           type: "function",
           function: {
             // Reference the function name from our definitions
-            name: openAIFunctions.submitStory.name,
+            name: openAIFunctions.submitStory.function.name,
             arguments: JSON.stringify({
               description: "Mock story submission for testing",
               timestamp: new Date().toISOString(),
