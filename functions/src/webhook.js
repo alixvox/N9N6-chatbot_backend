@@ -53,6 +53,12 @@ const handleWebhookResponse = async (req, res, stationId) => {
 
     const stationName = stationId === "n6" ? "News on 6" : "News 9";
 
+    await sessionManager.getOrCreateSession(
+        sessionId,
+        userId,
+        stationId,
+    );
+
     if (!messageText) {
       const welcomeMessage = [
         `Hi! I’m Newsy, an AI assistant for ${stationName}.`,
@@ -87,7 +93,6 @@ const handleWebhookResponse = async (req, res, stationId) => {
 
     // Get response from OpenAI manager
     const responseBody = await openAIManager.getResponseBody(
-        messageText,
         stationId,
         sessionId,
         userId,

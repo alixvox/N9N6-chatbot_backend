@@ -8,28 +8,31 @@
  * @type {Object}
  *  */
 const submitStoryFunction = {
-  name: "submit_story",
-  description: "Submit a story idea or news tip to the news team",
-  parameters: {
-    type: "object",
-    properties: {
-      description: {
-        type: "string",
-        description: "Detailed description of the story or tip, " +
-        "including any relevant contact information and location if provided",
+  type: "function",
+  function: {
+    name: "submit_story",
+    description: "Submit a story idea or news tip to the news team",
+    parameters: {
+      type: "object",
+      properties: {
+        description: {
+          type: "string",
+          description: "Detailed description of the story or tip, " +
+          "including any relevant contact information and location if provided",
+        },
+        timestamp: {
+          type: "string",
+          description: "The exact time the submission is made",
+        },
+        stationId: {
+          type: "string",
+          enum: ["n6", "n9"],
+          description: "The station identifier",
+        },
       },
-      timestamp: {
-        type: "string",
-        description: "The exact time the submission is made",
-      },
-      stationId: {
-        type: "string",
-        enum: ["n6", "n9"],
-        description: "The station identifier",
-      },
+      required: ["description", "timestamp", "stationId"],
+      additionalProperties: false,
     },
-    required: ["description", "timestamp", "stationId"],
-    additionalProperties: false,
   },
 };
 
