@@ -70,16 +70,57 @@ class SubmissionManager {
       // Get Zapier webhook URL
       const webhookUrl = await secretsManager.getSecret("ZAPIER_STORY");
 
-      // Send to Zapier
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          description: submission.description,
-          timestamp: submission.timestamp,
-          stationId: submission.stationId,
-        }),
+      // Debug log the webhook URL (masked for security)
+      logger.info("Attempting Zapier webhook call", {
+        webhookUrlLength: webhookUrl?.length,
+        hasWebhookUrl: !!webhookUrl,
       });
+
+      // Log the submission payload
+      logger.info("Submission payload:", {
+        description: submission.description?.substring(
+            0, 50) + "...", // truncate for privacy
+        timestamp: submission.timestamp,
+        stationId: submission.stationId,
+      });
+
+      // Send to Zapier with expanded error handling
+      let response;
+      try {
+        response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            description: submission.description,
+            timestamp: submission.timestamp,
+            stationId: submission.stationId,
+          }),
+        });
+
+        // Log detailed response info
+        logger.info("Zapier response details:", {
+          status: response.status,
+          ok: response.ok,
+          statusText: response.statusText,
+        });
+
+        // Try to get response body if there is one
+        let responseBody;
+        try {
+          responseBody = await response.text();
+          logger.info("Zapier response body:", {
+            body: responseBody,
+          });
+        } catch (bodyError) {
+          logger.error("Error reading response body:", bodyError);
+        }
+      } catch (fetchError) {
+        logger.error("Fetch to Zapier failed:", {
+          error: fetchError.message,
+          stack: fetchError.stack,
+        });
+        throw fetchError;
+      }
 
       // Create submission document
       const submissionDoc = {
