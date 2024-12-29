@@ -12,20 +12,45 @@ const db = admin.firestore();
 /**
  * @class SessionManager
  * @description Manages chat session data for N6 and N9 chatbots,
- * handling storage in both memory cache and Firestore. Includes
- * functionality for session creation, updates, and cleanup of old sessions.
+ * handling storage in Firestore. Includes functionality for
+ * session creation, updates, and cleanup of old sessions.
  */class SessionManager {
   /**
-   * Initializes session manager with separate memory caches for N6 and N9.
-   * Sets up periodic cleanup of old sessions.
-   */
-  constructor() {
-    this.sessions = {
-      n6: new Map(),
-      n9: new Map(),
+ * Gets the most recent relevant conversation history within token limits
+ * @param {string} sessionId - Session identifier
+ * @param {string} stationId - Station identifier ('n6' or 'n9')
+ * @param {number} maxTokens - Maximum tokens to include in history
+ * @return {Promise<Object|null>} Truncated session data for OpenAI
+ */
+  async getRecentHistory(sessionId, stationId, maxTokens = 4000) {
+  // Use existing method that handles Firestore logic
+    const session = await this.getOrCreateSession(sessionId, null, stationId);
+    if (!session) return null;
+
+    // Always include system message
+    const systemMessage = session.conversationHistory[0];
+    const recentMessages = [systemMessage];
+
+    // Add most recent messages until we hit token limit
+    // This is a simple approximation - you might want to use a
+    // proper token counter
+    let estimatedTokens = systemMessage.content.length / 4;
+
+    for (let i = session.conversationHistory.length - 1; i > 0; i--) {
+      const message = session.conversationHistory[i];
+      const messageTokens = message.content.length / 4;
+
+      if (estimatedTokens + messageTokens > maxTokens) break;
+
+      recentMessages.unshift(message);
+      estimatedTokens += messageTokens;
+    }
+
+    return {
+      ...session,
+      conversationHistory: recentMessages,
     };
   }
-
   /**
    * Gets the Firestore reference for a station's sessions collection.
    * @param {string} stationId - Station identifier ('n6' or 'n9')
@@ -43,21 +68,13 @@ const db = admin.firestore();
    * @return {Promise<Object>} Session data object
    */
   async getOrCreateSession(sessionId, userId, stationId) {
-    const stationSessions = this.sessions[stationId];
     const sessionsRef = this.getSessionsRef(stationId);
-
-    // Check memory cache first
-    if (stationSessions.has(sessionId)) {
-      return stationSessions.get(sessionId);
-    }
 
     // Check Firebase
     const sessionDoc = await sessionsRef.doc(sessionId).get();
 
     if (sessionDoc.exists) {
-      const sessionData = sessionDoc.data();
-      stationSessions.set(sessionId, sessionData);
-      return sessionData;
+      return sessionDoc.data();
     }
 
     // Create new session
@@ -83,9 +100,6 @@ const db = admin.firestore();
 
     // Save to Firebase
     await sessionsRef.doc(sessionId).set(newSession);
-
-    // Save to memory cache
-    stationSessions.set(sessionId, newSession);
     logger.logSessionData(newSession);
 
     return newSession;
@@ -101,22 +115,12 @@ const db = admin.firestore();
    * avoid extra reads
    * @return {Promise<Object|null>} Updated session data or null if not found
    */
-  async updateSession(
-      sessionId, message, role = "user", stationId, sessionData = null,
-  ) {
-    const stationSessions = this.sessions[stationId];
+  async updateSession(sessionId, message, role, stationId) {
     const sessionsRef = this.getSessionsRef(stationId);
+    const sessionDoc = await sessionsRef.doc(sessionId).get();
 
-    // Use provided session data or cached data
-    let session = sessionData || stationSessions.get(sessionId);
-
-    if (!session) {
-    // Only perform a read if we absolutely have to
-      const sessionDoc = await sessionsRef.doc(sessionId).get();
-      if (!sessionDoc.exists) return null;
-      session = sessionDoc.data();
-      stationSessions.set(sessionId, session);
-    }
+    if (!sessionDoc.exists) return null;
+    const session = sessionDoc.data();
 
     session.conversationHistory.push({
       role,
@@ -132,20 +136,6 @@ const db = admin.firestore();
 
     logger.logSessionData(session);
     return session;
-  }
-
-  /**
-   * Formats session data for OpenAI API consumption.
-   * @param {string} sessionId - Session identifier
-   * @param {string} stationId - Station identifier ('n6' or 'n9')
-   * @return {Promise<Object|null>} Formatted session data or null if not found
-   */
-  async getOpenAIFormat(sessionId, stationId) {
-    const session = await this.getOrCreateSession(sessionId, null, stationId);
-    if (session) {
-      return logger.formatForOpenAI(session);
-    }
-    return null;
   }
 }
 

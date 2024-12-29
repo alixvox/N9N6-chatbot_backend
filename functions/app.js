@@ -6,7 +6,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const webhookRoutes = require("./src/webhook");
-const errorHandler = require("./src/utils/errorHandler");
+const errorHandler = require("./src/utils/error-manager");
 
 const app = express();
 

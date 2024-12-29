@@ -6,8 +6,9 @@
 const express = require("express");
 // eslint-disable-next-line new-cap
 const router = express.Router();
-const sessionManager = require("./utils/session");
+const sessionManager = require("./utils/session-manager");
 const logger = require("./utils/logger");
+const openAIManager = require("./openai-manager");
 
 const verifyWebhookSecret = async (req, res, next) => {
   try {
@@ -52,13 +53,6 @@ const handleWebhookResponse = async (req, res, stationId) => {
 
     const stationName = stationId === "n6" ? "News on 6" : "News 9";
 
-    // Get or create session once and reuse the data
-    const session = await sessionManager.getOrCreateSession(
-        sessionId,
-        userId,
-        stationId,
-    );
-
     if (!messageText) {
       const welcomeMessage = [
         `Hi! I’m Newsy, an AI assistant for ${stationName}.`,
@@ -71,46 +65,43 @@ const handleWebhookResponse = async (req, res, stationId) => {
           welcomeMessage,
           "assistant",
           stationId,
-          session,
       );
 
-      const responseBody = {
+      return res.json({
         output: {
           generic: [{
             response_type: "text",
             text: welcomeMessage,
           }],
         },
-      };
-
-      res.set("X-Watson-Assistant-Webhook-Return", "true");
-      return res.json(responseBody);
+      });
     }
 
     // Handle non-empty messages - pass session data to avoid reads
     await sessionManager.updateSession(
-        sessionId, messageText, "user", stationId, session);
-
-    const responseText = "Message received! OpenAI integration coming soon.";
-
-    // Update with assistant response - pass session data to avoid reads
-    await sessionManager.updateSession(
         sessionId,
-        responseText,
-        "assistant",
+        messageText,
+        "user",
         stationId,
-        session,
     );
 
-    const responseBody = {
-      output: {
-        generic: [{
-          response_type: "text",
-          text: responseText,
-        }],
-      },
-    };
+    // Get response from OpenAI manager
+    const responseBody = await openAIManager.getResponseBody(
+        messageText,
+        stationId,
+        sessionId,
+        userId,
+    );
 
+    // Update session with assistant's response
+    await sessionManager.updateSession(
+        sessionId,
+        responseBody.output.generic[0].text,
+        "assistant",
+        stationId,
+    );
+
+    // Set Watson header and send response
     res.set("X-Watson-Assistant-Webhook-Return", "true");
     return res.json(responseBody);
   } catch (error) {

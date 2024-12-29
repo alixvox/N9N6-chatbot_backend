@@ -8,47 +8,16 @@ const {onRequest} = require("firebase-functions/v2/https");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
-const {SecretManagerServiceClient} = require("@google-cloud/secret-manager");
+const secretsManager = require("./utils/secrets-manager");
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
-
-// Initialize Secret Manager client
-const secretClient = new SecretManagerServiceClient();
 
 // Import the Express app
 const app = require("./app");
 
 // Log initialization
 logger.info("Initializing Firebase Functions", {structuredData: true});
-
-/**
- * Retrieves the latest version of a secret
- * @param {string} secretName - Name of the secret to retrieve
- * @return {Promise<string>} The secret value
- */
-async function getSecret(secretName) {
-  try {
-    const secretPath = [
-      "projects",
-      "n9n6-chatbot-backend",
-      "secrets",
-      secretName,
-      "versions",
-      "latest",
-    ].join("/");
-
-    const response = await secretClient.accessSecretVersion({
-      name: secretPath,
-    });
-    const [version] = response;
-
-    return version.payload.data.toString("utf8");
-  } catch (error) {
-    logger.error(`Error accessing secret ${secretName}:`, error);
-    throw error;
-  }
-}
 
 /**
  * Main HTTP endpoint for the webhook API.
@@ -61,7 +30,7 @@ exports.api = onRequest({
 }, async (request, response) => {
   try {
     // Get the webhook secret and attach it to the request
-    request.webhookSecret = await getSecret("WEBHOOK_SECRET");
+    request.webhookSecret = await secretsManager.getSecret("WEBHOOK_SECRET");
 
     logger.info("Received request", {
       path: request.path,
