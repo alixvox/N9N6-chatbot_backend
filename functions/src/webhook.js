@@ -8,7 +8,7 @@ const express = require("express");
 const router = express.Router();
 const sessionManager = require("./utils/session-manager");
 const logger = require("./utils/logger");
-const openAIManager = require("./openai-manager");
+const openAIManager = require("./utils/openai-manager");
 
 const verifyWebhookSecret = async (req, res, next) => {
   try {
