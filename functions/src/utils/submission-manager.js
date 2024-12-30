@@ -128,7 +128,7 @@ class SubmissionManager {
       const submissionDoc = {
         type,
         content: args.description,
-        timestamp: admin.firestore.Timestamp.fromDate(new Date(args.timestamp)),
+        timestamp: admin.firestore.Timestamp.now(),z
         zapierResponse: response.ok ? "Success" : "Failed",
         sessionId,
         userId,
