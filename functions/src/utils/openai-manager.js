@@ -133,6 +133,7 @@ const processMessage = async (
               description: "Mock story submission for testing",
               timestamp: new Date().toISOString(),
               stationId: stationId,
+              type: "story",
             }),
           },
         }],
