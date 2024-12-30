@@ -128,11 +128,11 @@ const processMessage = async (
           type: "function",
           function: {
             // Reference the function name from our definitions
-            name: openAIFunctions.submitFeedbackDigital.function.name,
+            name: openAIFunctions.submitFeedbackBroadcast.function.name,
             arguments: JSON.stringify({
-              description: "Mock digital feedback submission for testing",
+              description: "Mock broadcast feedback submission for testing",
               stationId: stationId,
-              type: "digital feedback",
+              type: "broadcast feedback",
             }),
           },
         }],
