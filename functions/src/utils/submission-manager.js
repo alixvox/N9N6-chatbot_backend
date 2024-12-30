@@ -10,6 +10,27 @@ const secretsManager = require("./secrets-manager");
 const db = admin.firestore();
 
 /**
+ * Formats current time to Central Time
+ * @return {string} Formatted time string
+ */
+function formatCurrentTimeCentral() {
+  const options = {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  };
+
+  const centralTime = new Date().toLocaleString("en-US", options);
+  return centralTime.replace(" at ", " at ").replace(",", "");
+}
+
+
+/**
  * @class SubmissionManager
  * @description Handles storing and retrieving submissions from Firestore
  */
@@ -94,6 +115,7 @@ class SubmissionManager {
         body: JSON.stringify({
           ...args,
           stationId: args.stationId,
+          time: formatCurrentTimeCentral(), // Add formatted time
         }),
       });
 
@@ -103,6 +125,7 @@ class SubmissionManager {
       responseText = response.ok ? responseText : failedResponseText;
 
       // Create submission document
+      const now = new Date();
       const submissionDoc = {
         type,
         content: args.description,
@@ -113,7 +136,7 @@ class SubmissionManager {
         created: admin.firestore.FieldValue.serverTimestamp(),
         conversationRef: {
           sessionId,
-          timestamp: args.timestamp,
+          timestamp: now.toISOString(), // Use current time
         },
       };
 

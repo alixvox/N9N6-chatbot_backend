@@ -20,10 +20,6 @@ const submitStoryFunction = {
           description: "Detailed description of the story or tip, " +
           "including any relevant contact information and location if provided",
         },
-        timestamp: {
-          type: "string",
-          description: "The exact time the submission is made",
-        },
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
@@ -34,7 +30,7 @@ const submitStoryFunction = {
           enum: ["story"],
         },
       },
-      required: ["description", "timestamp", "stationId", "type"],
+      required: ["description", "stationId", "type"],
       additionalProperties: false,
     },
   },
@@ -59,10 +55,6 @@ const submitFeedbackDigitalFunction = {
           description: "Detailed description of the feedback, " +
           "including any relevant contact information if provided upon request",
         },
-        timestamp: {
-          type: "string",
-          description: "The exact time the submission is made",
-        },
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
@@ -73,7 +65,7 @@ const submitFeedbackDigitalFunction = {
           enum: ["digital feedback"],
         },
       },
-      required: ["description", "timestamp", "stationId", "type"],
+      required: ["description", "stationId", "type"],
       additionalProperties: false,
     },
   },
@@ -97,10 +89,6 @@ const submitFeedbackBroadcastFunction = {
           description: "Detailed description of the feedback, " +
           "including any relevant contact information if provided upon request",
         },
-        timestamp: {
-          type: "string",
-          description: "The exact time the submission is made",
-        },
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
@@ -111,7 +99,7 @@ const submitFeedbackBroadcastFunction = {
           enum: ["broadcast feedback"],
         },
       },
-      required: ["description", "timestamp", "stationId", "type"],
+      required: ["description", "stationId", "type"],
       additionalProperties: false,
     },
   },
@@ -137,10 +125,6 @@ const submitTechnicalDigitalFunciton = {
           "including the access point, device, date/time of occurrence, and " +
           "any relevant contact information if provided upon request",
         },
-        timestamp: {
-          type: "string",
-          description: "The exact time the submission is made",
-        },
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
@@ -151,7 +135,7 @@ const submitTechnicalDigitalFunciton = {
           enum: ["digital technical"],
         },
       },
-      required: ["description", "timestamp", "stationId", "type"],
+      required: ["description", "stationId", "type"],
       additionalProperties: false,
     },
   },
@@ -176,10 +160,6 @@ const submitTechnicalBroadcastFunciton = {
           "including the access point, device, date/time of occurrence, and " +
           "any relevant contact information if provided upon request",
         },
-        timestamp: {
-          type: "string",
-          description: "The exact time the submission is made",
-        },
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
@@ -190,7 +170,7 @@ const submitTechnicalBroadcastFunciton = {
           enum: ["broadcast technical"],
         },
       },
-      required: ["description", "timestamp", "stationId", "type"],
+      required: ["description", "stationId", "type"],
       additionalProperties: false,
     },
   },
@@ -214,10 +194,6 @@ const submitAdvertisingFunction = {
           "request, requiring contact name and email, company name, and any " +
           "specific details or requirements for the request",
         },
-        timestamp: {
-          type: "string",
-          description: "The exact time the submission is made",
-        },
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
@@ -228,7 +204,7 @@ const submitAdvertisingFunction = {
           enum: ["advertising"],
         },
       },
-      required: ["description", "timestamp", "stationId", "type"],
+      required: ["description", "stationId", "type"],
       additionalProperties: false,
     },
   },
