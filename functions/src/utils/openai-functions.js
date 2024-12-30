@@ -29,23 +29,28 @@ const submitStoryFunction = {
           enum: ["n6", "n9"],
           description: "The station identifier",
         },
+        type: {
+          type: "string",
+          enum: ["story"],
+        },
       },
-      required: ["description", "timestamp", "stationId"],
+      required: ["description", "timestamp", "stationId", "type"],
       additionalProperties: false,
     },
   },
 };
 
 /**
- * Function definition for feedback submission
+ * Function definition for feedback submission to digital team
  * @type {Object}
  *  */
-const submitFeedbackFunction = {
+const submitFeedbackDigitalFunction = {
   type: "function",
   function: {
-    name: "submit_feedback",
-    description: "Submit feedback for the news producers, editors, talent, " +
-    "etc.",
+    name: "submit_feedback_digital",
+    description: "Submit feedback for a story or content hosted on the " +
+    "website or app, not including feedback for the broadcast/livestream " +
+    "content",
     parameters: {
       type: "object",
       properties: {
@@ -63,8 +68,50 @@ const submitFeedbackFunction = {
           enum: ["n6", "n9"],
           description: "The station identifier",
         },
+        type: {
+          type: "string",
+          enum: ["digital feedback"],
+        },
       },
-      required: ["description", "timestamp", "stationId"],
+      required: ["description", "timestamp", "stationId", "type"],
+      additionalProperties: false,
+    },
+  },
+};
+
+/**
+ * Function definition for feedback submission to broadcast team
+ * @type {Object}
+ *  */
+const submitFeedbackBroadcastFunction = {
+  type: "function",
+  function: {
+    name: "submit_feedback",
+    description: "Submit feedback for the news producers, editors, talent, " +
+    "etc in regards to the broadcast or livestream content",
+    parameters: {
+      type: "object",
+      properties: {
+        description: {
+          type: "string",
+          description: "Detailed description of the feedback, " +
+          "including any relevant contact information if provided upon request",
+        },
+        timestamp: {
+          type: "string",
+          description: "The exact time the submission is made",
+        },
+        stationId: {
+          type: "string",
+          enum: ["n6", "n9"],
+          description: "The station identifier",
+        },
+        type: {
+          type: "string",
+          enum: ["broadcast feedback"],
+        },
+      },
+      required: ["description", "timestamp", "stationId", "type"],
       additionalProperties: false,
     },
   },
@@ -74,12 +121,13 @@ const submitFeedbackFunction = {
  * Function definition for technical/bug report
  * @type {Object}
  *  */
-const submitTechnicalFunciton = {
+const submitTechnicalDigitalFunciton = {
   type: "function",
   function: {
-    name: "submit_feedback",
-    description: "Submit a technical issue or bug report to the " +
-    "development team",
+    name: "submit_technical_digital",
+    description: "Submit a technical issue or bug report of the website or " +
+    "app to the development team, not including feedback for the broadcast/" +
+    "livestream content",
     parameters: {
       type: "object",
       properties: {
@@ -98,8 +146,51 @@ const submitTechnicalFunciton = {
           enum: ["n6", "n9"],
           description: "The station identifier",
         },
+        type: {
+          type: "string",
+          enum: ["digital technical"],
+        },
       },
-      required: ["description", "timestamp", "stationId"],
+      required: ["description", "timestamp", "stationId", "type"],
+      additionalProperties: false,
+    },
+  },
+};
+
+/**
+ * Function definition for technical/bug report
+ * @type {Object}
+ *  */
+const submitTechnicalBroadcastFunciton = {
+  type: "function",
+  function: {
+    name: "submit_technical_broadcast",
+    description: "Submit a technical issue or bug report of the broadcast " +
+    "or livestream to the engineering team",
+    parameters: {
+      type: "object",
+      properties: {
+        description: {
+          type: "string",
+          description: "Detailed description of the technical issue or bug, " +
+          "including the access point, device, date/time of occurrence, and " +
+          "any relevant contact information if provided upon request",
+        },
+        timestamp: {
+          type: "string",
+          description: "The exact time the submission is made",
+        },
+        stationId: {
+          type: "string",
+          enum: ["n6", "n9"],
+          description: "The station identifier",
+        },
+        type: {
+          type: "string",
+          enum: ["broadcast technical"],
+        },
+      },
+      required: ["description", "timestamp", "stationId", "type"],
       additionalProperties: false,
     },
   },
@@ -132,8 +223,12 @@ const submitAdvertisingFunction = {
           enum: ["n6", "n9"],
           description: "The station identifier",
         },
+        type: {
+          type: "string",
+          enum: ["advertising"],
+        },
       },
-      required: ["description", "timestamp", "stationId"],
+      required: ["description", "timestamp", "stationId", "type"],
       additionalProperties: false,
     },
   },
@@ -142,12 +237,16 @@ const submitAdvertisingFunction = {
 // Export individual functions and the complete list
 module.exports = {
   submitStory: submitStoryFunction,
-  submitFeedback: submitFeedbackFunction,
-  submitTechnical: submitTechnicalFunciton,
+  submitFeedbackDigital: submitFeedbackDigitalFunction,
+  submitFeedbackBroadcast: submitFeedbackBroadcastFunction,
+  submitTechnicalDigital: submitTechnicalDigitalFunciton,
+  submitTechnicalBroadcast: submitTechnicalBroadcastFunciton,
   submitAdvertising: submitAdvertisingFunction,
   getAllFunctions: () => [
     submitStoryFunction,
-    submitFeedbackFunction,
-    submitTechnicalFunciton,
+    submitFeedbackDigitalFunction,
+    submitFeedbackBroadcastFunction,
+    submitTechnicalDigitalFunciton,
+    submitTechnicalBroadcastFunciton,
     submitAdvertisingFunction],
 };

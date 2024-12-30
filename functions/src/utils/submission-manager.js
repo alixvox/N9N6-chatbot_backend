@@ -36,44 +36,54 @@ class SubmissionManager {
       const args = JSON.parse(functionCall.function.arguments);
       const functionName = functionCall.function.name;
 
-      let responseText; let type; let webhookUrl;
+      const webhookUrl = await secretsManager.getSecret("ZAPIER_WEBHOOK");
+      let responseText; let type;
 
       // Assign variables based on function name
       switch (functionName) {
         case "submit_story":
           responseText = "Thank you! I've submitted your story idea to " +
-          "our news team.\n\n" +
+          "our news team.\n" +
           "Is there anything else I can help you with?";
           type = "story";
-          webhookUrl = await secretsManager.getSecret("ZAPIER_STORY");
           break;
-        case "submit_feedback":
+        case "submit_feedback_digital":
           responseText = "Thank you for your feedback! We appreciate you " +
-          "sharing your thoughts with us.\n\n" +
+          "sharing your thoughts with us.\n" +
           "Is there anything else I can assist you with?";
-          type = "feedback";
-          webhookUrl = await secretsManager.getSecret("ZAPIER_FEEDBACK");
+          type = "digital feedback";
           break;
-        case "submit_technical":
+        case "submit_feedback_broadcast":
+          responseText = "Thank you for your feedback! We appreciate you " +
+            "sharing your thoughts with us.\n" +
+            "Is there anything else I can assist you with?";
+          type = "broadcast feedback";
+          break;
+        case "submit_technical_digital":
           responseText = "Thank you for reporting this technical issue! " +
           "Our team will look into it and get back to you if a follow up " +
-          "is needed.\n\n" +
+          "is needed.\n" +
           "Is there anything else I can assist you with?";
-          type = "technical";
-          webhookUrl = await secretsManager.getSecret("ZAPIER_TECHNICAL");
+          type = "digital technical";
+          break;
+        case "submit_technical_broadcast":
+          responseText = "Thank you for reporting this technical issue! " +
+            "Our team will look into it and get back to you if a follow up " +
+            "is needed.\n" +
+            "Is there anything else I can assist you with?";
+          type = "broadcast technical";
           break;
         case "submit_advertising":
           responseText = "Thank you for your interest in advertising with " +
           "us! I've passed along your information to our sales team. " +
           "They'll reach out soon to discuss options if they think " +
-          "we're a good fit.\n\n" +
+          "we're a good fit.\n" +
           "Is there anything else I can assist you with?";
           type = "advertising";
-          webhookUrl = await secretsManager.getSecret("ZAPIER_ADVERTISING");
           break;
         default:
           logger.error(`Unknown function called: ${functionName}`);
-          return "I apologize, but I encountered an unexpected error.\n\n" +
+          return "I apologize, but I encountered an unexpected error.\n" +
           "Please try again.";
       }
 
@@ -88,7 +98,8 @@ class SubmissionManager {
       });
 
       const failedResponseText = "I apologize, but there was an issue " +
-      "submitting your ${type}.\n\nPlease try again later.";
+      "submitting your ${type} inquiry.\n" +
+      "Please try again later.";
       responseText = response.ok ? responseText : failedResponseText;
 
       // Create submission document
