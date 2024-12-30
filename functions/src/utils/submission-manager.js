@@ -68,26 +68,26 @@ class SubmissionManager {
           "Is there anything else I can help you with?";
           type = "story";
           break;
-        case "submit_feedback_digital":
+        case "submit_digital_feedback":
           responseText = "Thank you for your feedback! We appreciate you " +
           "sharing your thoughts with us.\n" +
           "Is there anything else I can assist you with?";
           type = "digital feedback";
           break;
-        case "submit_feedback_broadcast":
+        case "submit_broadcast_feedback":
           responseText = "Thank you for your feedback! We appreciate you " +
             "sharing your thoughts with us.\n" +
             "Is there anything else I can assist you with?";
           type = "broadcast feedback";
           break;
-        case "submit_technical_digital":
+        case "submit_digital_technical":
           responseText = "Thank you for reporting this technical issue! " +
           "Our team will look into it and get back to you if a follow up " +
           "is needed.\n" +
           "Is there anything else I can assist you with?";
           type = "digital technical";
           break;
-        case "submit_technical_broadcast":
+        case "submit_broadcast_technical":
           responseText = "Thank you for reporting this technical issue! " +
             "Our team will look into it and get back to you if a follow up " +
             "is needed.\n" +

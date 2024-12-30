@@ -23,7 +23,7 @@ const submitStoryFunction = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier",
+          description: "The station identifier. Use your station's ID.",
         },
         type: {
           type: "string",
@@ -40,10 +40,10 @@ const submitStoryFunction = {
  * Function definition for feedback submission to digital team
  * @type {Object}
  *  */
-const submitFeedbackDigitalFunction = {
+const submitDigitalFeedbackFunction = {
   type: "function",
   function: {
-    name: "submit_feedback_digital",
+    name: "submit_digital_feedback",
     description: "Submit feedback for a story or content hosted on the " +
     "website or app, not including feedback for the broadcast/livestream " +
     "content",
@@ -58,7 +58,7 @@ const submitFeedbackDigitalFunction = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier",
+          description: "The station identifier. Use your station's ID.",
         },
         type: {
           type: "string",
@@ -75,10 +75,10 @@ const submitFeedbackDigitalFunction = {
  * Function definition for feedback submission to broadcast team
  * @type {Object}
  *  */
-const submitFeedbackBroadcastFunction = {
+const submitBroadcastFeedbackFunction = {
   type: "function",
   function: {
-    name: "submit_feedback_broadcast",
+    name: "submit_broadcast_feedback",
     description: "Submit feedback for the news producers, editors, talent, " +
     "etc in regards to the broadcast or livestream content",
     parameters: {
@@ -92,7 +92,7 @@ const submitFeedbackBroadcastFunction = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier",
+          description: "The station identifier. Use your station's ID.",
         },
         type: {
           type: "string",
@@ -109,10 +109,10 @@ const submitFeedbackBroadcastFunction = {
  * Function definition for technical/bug report
  * @type {Object}
  *  */
-const submitTechnicalDigitalFunciton = {
+const submitDigitalTechnicalFunciton = {
   type: "function",
   function: {
-    name: "submit_technical_digital",
+    name: "submit_digital_technical",
     description: "Submit a technical issue or bug report of the website or " +
     "app to the development team, not including feedback for the broadcast/" +
     "livestream content",
@@ -128,7 +128,7 @@ const submitTechnicalDigitalFunciton = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier",
+          description: "The station identifier. Use your station's ID.",
         },
         type: {
           type: "string",
@@ -145,10 +145,10 @@ const submitTechnicalDigitalFunciton = {
  * Function definition for technical/bug report
  * @type {Object}
  *  */
-const submitTechnicalBroadcastFunciton = {
+const submitBroadcastTechnicalFunciton = {
   type: "function",
   function: {
-    name: "submit_technical_broadcast",
+    name: "submit_broadcast_technical",
     description: "Submit a technical issue or bug report of the broadcast " +
     "or livestream to the engineering team",
     parameters: {
@@ -163,7 +163,7 @@ const submitTechnicalBroadcastFunciton = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier",
+          description: "The station identifier. Use your station's ID.",
         },
         type: {
           type: "string",
@@ -197,7 +197,7 @@ const submitAdvertisingFunction = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier",
+          description: "The station identifier. Use your station's ID.",
         },
         type: {
           type: "string",
@@ -213,16 +213,16 @@ const submitAdvertisingFunction = {
 // Export individual functions and the complete list
 module.exports = {
   submitStory: submitStoryFunction,
-  submitFeedbackDigital: submitFeedbackDigitalFunction,
-  submitFeedbackBroadcast: submitFeedbackBroadcastFunction,
-  submitTechnicalDigital: submitTechnicalDigitalFunciton,
-  submitTechnicalBroadcast: submitTechnicalBroadcastFunciton,
+  submitDigitalFeedback: submitDigitalFeedbackFunction,
+  submitBroadcastFeedback: submitBroadcastFeedbackFunction,
+  submitDigitalTechnical: submitDigitalTechnicalFunciton,
+  submitBroadcastTechnical: submitBroadcastTechnicalFunciton,
   submitAdvertising: submitAdvertisingFunction,
   getAllFunctions: () => [
     submitStoryFunction,
-    submitFeedbackDigitalFunction,
-    submitFeedbackBroadcastFunction,
-    submitTechnicalDigitalFunciton,
-    submitTechnicalBroadcastFunciton,
+    submitDigitalFeedbackFunction,
+    submitBroadcastFeedbackFunction,
+    submitDigitalTechnicalFunciton,
+    submitBroadcastTechnicalFunciton,
     submitAdvertisingFunction],
 };
