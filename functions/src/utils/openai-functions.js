@@ -78,7 +78,7 @@ const submitFeedbackDigitalFunction = {
 const submitFeedbackBroadcastFunction = {
   type: "function",
   function: {
-    name: "submit_feedback",
+    name: "submit_feedback_broadcast",
     description: "Submit feedback for the news producers, editors, talent, " +
     "etc in regards to the broadcast or livestream content",
     parameters: {
