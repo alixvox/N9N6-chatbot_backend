@@ -125,7 +125,6 @@ class SubmissionManager {
       responseText = response.ok ? responseText : failedResponseText;
 
       // Create submission document
-      const now = new Date();
       const submissionDoc = {
         type,
         content: args.description,
@@ -136,7 +135,7 @@ class SubmissionManager {
         created: admin.firestore.FieldValue.serverTimestamp(),
         conversationRef: {
           sessionId,
-          timestamp: now.toISOString(), // Use current time
+          timestamp: formatCurrentTimeCentral(),
         },
       };
 
