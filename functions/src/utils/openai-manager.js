@@ -94,7 +94,8 @@ const getResponseBody = async (stationId, sessionId, userId) => {
         generic: [{
           response_type: "text",
           text: "I apologize, but I'm having trouble processing your " +
-          "request. Please try again.",
+          "request.\n\n" +
+          "Please try again.",
         }],
       },
     };
@@ -127,7 +128,7 @@ const processMessage = async (
           type: "function",
           function: {
             // Reference the function name from our definitions
-            name: openAIFunctions.submitStory.function.name,
+            name: openAIFunctions.submitFeedback.function.name,
             arguments: JSON.stringify({
               description: "Mock story submission for testing",
               timestamp: new Date().toISOString(),

@@ -142,6 +142,9 @@ const submitAdvertisingFunction = {
 // Export individual functions and the complete list
 module.exports = {
   submitStory: submitStoryFunction,
+  submitFeedback: submitFeedbackFunction,
+  submitTechnical: submitTechnicalFunciton,
+  submitAdvertising: submitAdvertisingFunction,
   getAllFunctions: () => [
     submitStoryFunction,
     submitFeedbackFunction,
