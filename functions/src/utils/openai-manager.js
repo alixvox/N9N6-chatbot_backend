@@ -128,11 +128,12 @@ const processMessage = async (
           type: "function",
           function: {
             // Reference the function name from our definitions
-            name: openAIFunctions.submitAdvertising.function.name,
+            name: openAIFunctions.formatGoogleSearch.function.name,
             arguments: JSON.stringify({
-              description: "Mock advertising request for testing",
-              stationId: stationId,
-              type: "advertising",
+              keywords: ["House", "fire", "rogers", "county"],
+              siteUrl: stationId === "n6" ?
+                "site:newson6.com" :
+                "site:news9.com",
             }),
           },
         }],

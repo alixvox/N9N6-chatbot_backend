@@ -102,6 +102,13 @@ class SubmissionManager {
           "Is there anything else I can assist you with?";
           type = "advertising";
           break;
+        case "format_google_search": {
+          const searchUrl = `https://www.google.com/search?q=${args.keywords.join("+")}+${args.siteUrl}`;
+          return `I've formatted a Google search to help you find that story.` +
+            ` Here's the link:\n${searchUrl}\n\nIs there anything else I can ` +
+            `help you with?`;
+        }
+
         default:
           logger.error(`Unknown function called: ${functionName}`);
           return "I apologize, but I encountered an unexpected error.\n" +

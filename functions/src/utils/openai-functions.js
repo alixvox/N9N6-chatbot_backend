@@ -12,6 +12,7 @@ const submitStoryFunction = {
   function: {
     name: "submit_story",
     description: "Submit a story idea or news tip to the news team",
+    strict: true,
     parameters: {
       type: "object",
       properties: {
@@ -23,7 +24,8 @@ const submitStoryFunction = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier. Use your station's ID.",
+          description: "The station identifier. Use the station you " +
+          "associate with: n6 for News on 6, n9 for News 9.",
         },
         type: {
           type: "string",
@@ -44,9 +46,11 @@ const submitDigitalFeedbackFunction = {
   type: "function",
   function: {
     name: "submit_digital_feedback",
+    strict: true,
     description: "Submit feedback for a story or content hosted on the " +
     "website or app, not including feedback for the broadcast/livestream " +
-    "content",
+    "content. This can include feedback suggestions for features such as " +
+    "website & search functionality, the chatbot assistant (you), etc",
     parameters: {
       type: "object",
       properties: {
@@ -58,7 +62,8 @@ const submitDigitalFeedbackFunction = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier. Use your station's ID.",
+          description: "The station identifier. Use the station you " +
+          "associate with: n6 for News on 6, n9 for News 9.",
         },
         type: {
           type: "string",
@@ -79,6 +84,7 @@ const submitBroadcastFeedbackFunction = {
   type: "function",
   function: {
     name: "submit_broadcast_feedback",
+    strict: true,
     description: "Submit feedback for the news producers, editors, talent, " +
     "etc in regards to the broadcast or livestream content",
     parameters: {
@@ -92,7 +98,8 @@ const submitBroadcastFeedbackFunction = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier. Use your station's ID.",
+          description: "The station identifier. Use the station you " +
+          "associate with: n6 for News on 6, n9 for News 9.",
         },
         type: {
           type: "string",
@@ -113,6 +120,7 @@ const submitDigitalTechnicalFunciton = {
   type: "function",
   function: {
     name: "submit_digital_technical",
+    strict: true,
     description: "Submit a technical issue or bug report of the website or " +
     "app to the development team, not including feedback for the broadcast/" +
     "livestream content",
@@ -128,7 +136,8 @@ const submitDigitalTechnicalFunciton = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier. Use your station's ID.",
+          description: "The station identifier. Use the station you " +
+          "associate with: n6 for News on 6, n9 for News 9.",
         },
         type: {
           type: "string",
@@ -149,6 +158,7 @@ const submitBroadcastTechnicalFunciton = {
   type: "function",
   function: {
     name: "submit_broadcast_technical",
+    strict: true,
     description: "Submit a technical issue or bug report of the broadcast " +
     "or livestream to the engineering team",
     parameters: {
@@ -163,7 +173,8 @@ const submitBroadcastTechnicalFunciton = {
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier. Use your station's ID.",
+          description: "The station identifier. Use the station you " +
+          "associate with: n6 for News on 6, n9 for News 9.",
         },
         type: {
           type: "string",
@@ -184,6 +195,7 @@ const submitAdvertisingFunction = {
   type: "function",
   function: {
     name: "submit_advertising",
+    strict: true,
     description: "Submit a request for advertising or sponsor opportunities",
     parameters: {
       type: "object",
@@ -191,13 +203,15 @@ const submitAdvertisingFunction = {
         description: {
           type: "string",
           description: "Detailed description of the advertising or sponsor " +
-          "request, requiring contact name and email, company name, and any " +
-          "specific details or requirements for the request",
+          "request, this requires contact name, email, phone, and company " +
+          "name, and can include any specific details or requirements for " +
+          "the request",
         },
         stationId: {
           type: "string",
           enum: ["n6", "n9"],
-          description: "The station identifier. Use your station's ID.",
+          description: "The station identifier. Use the station you " +
+          "associate with: n6 for News on 6, n9 for News 9.",
         },
         type: {
           type: "string",
@@ -205,6 +219,39 @@ const submitAdvertisingFunction = {
         },
       },
       required: ["description", "stationId", "type"],
+      additionalProperties: false,
+    },
+  },
+};
+
+/**
+ * Function definition for Google search link formatting
+ * @type {Object}
+ */
+const formatGoogleSearchFunction = {
+  type: "function",
+  function: {
+    name: "format_google_search",
+    description: "Format a Google search URL to help users find specific " +
+    "stories on the station website.",
+    strict: true,
+    parameters: {
+      type: "object",
+      properties: {
+        keywords: {
+          type: "array",
+          items: {type: "string"},
+          description: "Keywords for the search query, ordered by importance " +
+          "(most important first). For example, ['tulsa', 'weather']",
+        },
+        siteUrl: {
+          type: "string",
+          enum: ["newson6.com", "news9.com"],
+          description: "The website to restrict the search to. Use the " +
+          "website you are associated with.",
+        },
+      },
+      required: ["keywords", "siteUrl"],
       additionalProperties: false,
     },
   },
@@ -218,11 +265,14 @@ module.exports = {
   submitDigitalTechnical: submitDigitalTechnicalFunciton,
   submitBroadcastTechnical: submitBroadcastTechnicalFunciton,
   submitAdvertising: submitAdvertisingFunction,
+  formatGoogleSearch: formatGoogleSearchFunction,
   getAllFunctions: () => [
     submitStoryFunction,
     submitDigitalFeedbackFunction,
     submitBroadcastFeedbackFunction,
     submitDigitalTechnicalFunciton,
     submitBroadcastTechnicalFunciton,
-    submitAdvertisingFunction],
+    submitAdvertisingFunction,
+    formatGoogleSearchFunction,
+  ],
 };
