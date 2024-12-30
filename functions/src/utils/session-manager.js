@@ -16,42 +16,6 @@ const db = admin.firestore();
  * session creation, updates, and cleanup of old sessions.
  */class SessionManager {
   /**
- * Gets the most recent relevant conversation history within token limits
- * @param {string} sessionId - Session identifier
- * @param {string} stationId - Station identifier ('n6' or 'n9')
- * @param {number} maxTokens - Maximum tokens to include in history
- * @return {Promise<Object|null>} Truncated session data for OpenAI
- */
-  async getRecentHistory(sessionId, stationId, maxTokens = 4000) {
-  // Use existing method that handles Firestore logic
-    const session = await this.getOrCreateSession(sessionId, null, stationId);
-    if (!session) return null;
-
-    // Always include system message
-    const systemMessage = session.conversationHistory[0];
-    const recentMessages = [systemMessage];
-
-    // Add most recent messages until we hit token limit
-    // This is a simple approximation - you might want to use a
-    // proper token counter
-    let estimatedTokens = systemMessage.content.length / 4;
-
-    for (let i = session.conversationHistory.length - 1; i > 0; i--) {
-      const message = session.conversationHistory[i];
-      const messageTokens = message.content.length / 4;
-
-      if (estimatedTokens + messageTokens > maxTokens) break;
-
-      recentMessages.unshift(message);
-      estimatedTokens += messageTokens;
-    }
-
-    return {
-      ...session,
-      conversationHistory: recentMessages,
-    };
-  }
-  /**
    * Gets the Firestore reference for a station's sessions collection.
    * @param {string} stationId - Station identifier ('n6' or 'n9')
    * @return {FirebaseFirestore.CollectionReference} - Firestore collection ref

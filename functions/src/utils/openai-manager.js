@@ -1,31 +1,27 @@
 /**
  * OpenAI integration handler
- * @module openai
+ * @module openai-manager
  */
 
+const OpenAI = require("openai");
 const logger = require("./logger");
 const sessionManager = require("./session-manager");
-const submissionManager = require("./submission-manager");
-const openAIFunctions = require("./openai-functions");
+const functionManager = require("./function-manager");
+const secretsManager = require("./secrets-manager");
 
 /**
- * Formats session data for OpenAI API consumption
- * @param {Object} sessionData - The session data to format
- * @return {Object} Formatted data for OpenAI API
+ * Creates a new OpenAI client instance
+ * @return {Promise<{client: OpenAI, n6Id: string, n9Id: string}>}
  */
-const formatForOpenAI = (sessionData) => {
-  const formattedMessages = sessionData.conversationHistory.map((msg) => ({
-    role: msg.role,
-    content: msg.content,
-  }));
+const createOpenAIClient = async () => {
+  const apiKey = await secretsManager.getSecret("OPENAI_SERVICE_API_KEY");
+  const n9Id = await secretsManager.getSecret("N9_ASSISTANT_ID");
+  const n6Id = await secretsManager.getSecret("N6_ASSISTANT_ID");
 
   return {
-    messages: formattedMessages,
-    metadata: {
-      station_id: sessionData.stationId,
-      user_id: sessionData.userId,
-      session_id: sessionData.sessionId,
-    },
+    client: new OpenAI({apiKey}),
+    n6Id,
+    n9Id,
   };
 };
 
@@ -45,44 +41,105 @@ const getResponseBody = async (stationId, sessionId, userId) => {
         stationId,
     );
 
-    // Format session data for OpenAI
-    const formattedSession = formatForOpenAI(sessionData);
+    // Get OpenAI client
+    const {client, n6Id, n9Id} = await createOpenAIClient();
+    const assistantId = stationId === "n6" ? n6Id : n9Id;
 
-    // Process through OpenAI (mock for now)
-    const openAIResponse = await processMessage(
-        formattedSession, // Pass the formatted session data
-        stationId,
-        sessionId,
-        userId,
-    );
-    const choice = openAIResponse.choices[0].message;
+    // Format messages for OpenAI
+    const messages = sessionData.conversationHistory
+        .filter((msg) => msg.content && msg.content.trim())
+        .map((msg) => ({
+          role: msg.role,
+          content: msg.content.trim(),
+        }));
 
-    // If OpenAI returned a direct message to the user
-    if (choice.content) {
+    // Initial API call to OpenAI
+    let response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      assistant_id: assistantId,
+    });
+
+    const assistantMessage = response.choices[0].message;
+
+    // If it's a direct message (no function call)
+    if (assistantMessage.content && !assistantMessage.tool_calls) {
       return {
         output: {
           generic: [{
             response_type: "text",
-            text: choice.content,
+            text: assistantMessage.content,
           }],
         },
       };
     }
 
-    // If OpenAI called a function
-    if (choice.tool_calls) {
-      const functionCall = choice.tool_calls[0];
-      const responseText = await submissionManager.handleSubmission(
-          functionCall,
+    // If it's a function call
+    if (assistantMessage.tool_calls) {
+      const toolCall = assistantMessage.tool_calls[0];
+
+      logger.info("Received function call from OpenAI:", {
+        toolCall,
+        argumentType: typeof toolCall.function.arguments,
+      });
+
+      const {name: functionName, arguments: argsString} = toolCall.function;
+
+      // Log before parsing to see the raw format
+      logger.info("Function arguments before parsing:", {
+        argsString,
+        isString: typeof argsString === "string",
+      });
+
+      const args = JSON.parse(argsString);
+
+      // Execute the function and get result
+      const functionResult = await functionManager.executeFunction(
+          functionName,
+          args,
           sessionId,
           userId,
       );
+
+      logger.info("Function execution result:", {
+        functionName,
+        result: functionResult,
+        resultType: typeof functionResult,
+      });
+
+      // Determine if we need to stringify the result
+      const resultContent = typeof functionResult === "string" ?
+        functionResult :
+        JSON.stringify(functionResult);
+
+      logger.info("Sending function result to OpenAI:", {
+        functionName,
+        resultContent,
+      });
+
+      // Send function result back to OpenAI for final response
+      response = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          ...messages,
+          assistantMessage,
+          {
+            role: "function",
+            name: functionName,
+            content: JSON.stringify(functionResult),
+          },
+        ],
+        assistant_id: assistantId,
+      });
+
+      // Get final message that includes function result context
+      const finalMessage = response.choices[0].message;
 
       return {
         output: {
           generic: [{
             response_type: "text",
-            text: responseText,
+            text: finalMessage.content,
           }],
         },
       };
@@ -105,45 +162,6 @@ const getResponseBody = async (stationId, sessionId, userId) => {
   }
 };
 
-/**
- * Processes a chat message through OpenAI (mock for testing)
- * @param {Object} formattedSession - The formatted session data
- * @param {string} stationId - The station identifier
- * @param {string} sessionId - The session identifier
- * @param {string} userId - The user identifier
- * @return {Promise<Object>} OpenAI's response
- */
-const processMessage = async (
-    formattedSession, stationId, sessionId, userId) => {
-  // For testing, we'll mock an OpenAI response that calls the
-  // submit_story function. Later, this will be replaced with actual
-  // OpenAI API calls
-  return {
-    choices: [{
-      message: {
-        role: "assistant",
-        content: null,
-        tool_calls: [{
-          id: "call_" + Date.now(),
-          type: "function",
-          function: {
-            // Reference the function name from our definitions
-            name: openAIFunctions.formatGoogleSearch.function.name,
-            arguments: JSON.stringify({
-              keywords: ["House", "fire", "rogers", "county"],
-              siteUrl: stationId === "n6" ?
-                "site:newson6.com" :
-                "site:news9.com",
-            }),
-          },
-        }],
-      },
-    }],
-  };
-};
-
 module.exports = {
   getResponseBody,
-  // Export functions for use in other parts of the application
-  functions: openAIFunctions.getAllFunctions(),
 };
