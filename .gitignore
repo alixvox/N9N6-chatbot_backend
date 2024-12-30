@@ -16,4 +16,3 @@ functions/config/*firebase*.json
 functions/server.json
 
 # IDE
-.vscode
