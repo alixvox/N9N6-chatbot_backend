@@ -32,104 +32,97 @@ class SubmissionManager {
    */
   async handleSubmission(functionCall, sessionId, userId) {
     try {
+      // Parse function call arguments
       const args = JSON.parse(functionCall.function.arguments);
       const functionName = functionCall.function.name;
 
+      let responseText; let type; let webhookUrl;
+
+      // Assign variables based on function name
       switch (functionName) {
-        case "submit_story": {
-          const response = await this.createStorySubmission({
-            ...args,
-            sessionId,
-            userId,
-          });
-          return response.responseText;
-        }
+        case "submit_story":
+          responseText = "Thank you! I've submitted your story idea to " +
+          "our news team.\n\n" +
+          "Is there anything else I can help you with?";
+          type = "story";
+          webhookUrl = await secretsManager.getSecret("ZAPIER_STORY");
+          break;
+        case "submit_feedback":
+          responseText = "Thank you for your feedback! We appreciate you " +
+          "sharing your thoughts with us.\n\n" +
+          "Is there anything else I can assist you with?";
+          type = "feedback";
+          webhookUrl = await secretsManager.getSecret("ZAPIER_FEEDBACK");
+          break;
+        case "submit_technical":
+          responseText = "Thank you for reporting this technical issue! " +
+          "Our team will look into it and get back to you if a follow up " +
+          "is needed.\n\n" +
+          "Is there anything else I can assist you with?";
+          type = "technical";
+          webhookUrl = await secretsManager.getSecret("ZAPIER_TECHNICAL");
+          break;
+        case "submit_advertising":
+          responseText = "Thank you for your interest in advertising with " +
+          "us! I've passed along your information to our sales team. " +
+          "They'll reach out soon to discuss options if they think " +
+          "we're a good fit.\n\n" +
+          "Is there anything else I can assist you with?";
+          type = "advertising";
+          webhookUrl = await secretsManager.getSecret("ZAPIER_ADVERTISING");
+          break;
         default:
           logger.error(`Unknown function called: ${functionName}`);
-          return "I apologize, but I encountered an unexpected error. " +
+          return "I apologize, but I encountered an unexpected error.\n\n" +
           "Please try again.";
       }
-    } catch (error) {
-      logger.error("Error in handleSubmission:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Creates a story submission and sends it to Zapier
-   * @param {Object} submission - Submission details
-   * @param {string} submission.stationId - Station identifier ('n6' or 'n9')
-   * @param {string} submission.description - Story description
-   * @param {string} submission.timestamp - Submission timestamp
-   * @param {string} submission.sessionId - Chat session ID
-   * @param {string} submission.userId - User identifier
-   * @return {Promise<Object>} Submission result with response text
-   */
-  async createStorySubmission(submission) {
-    try {
-      // Get Zapier webhook URL
-      const webhookUrl = await secretsManager.getSecret("ZAPIER_STORY");
 
       // Send to Zapier
       const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-          description: submission.description,
-          timestamp: submission.timestamp,
-          stationId: submission.stationId,
+          ...args,
+          stationId: args.stationId,
         }),
       });
 
+      const failedResponseText = "I apologize, but there was an issue " +
+      "submitting your ${type}.\n\nPlease try again later.";
+      responseText = response.ok ? responseText : failedResponseText;
+
       // Create submission document
       const submissionDoc = {
-        type: "story",
-        content: submission.description,
-        timestamp: admin.firestore.Timestamp.fromDate(
-            new Date(submission.timestamp)),
+        type,
+        content: args.description,
+        timestamp: admin.firestore.Timestamp.fromDate(new Date(args.timestamp)),
         zapierResponse: response.ok ? "Success" : "Failed",
-        sessionId: submission.sessionId,
-        userId: submission.userId,
+        sessionId,
+        userId,
         created: admin.firestore.FieldValue.serverTimestamp(),
         conversationRef: {
-          sessionId: submission.sessionId,
-          timestamp: submission.timestamp,
+          sessionId,
+          timestamp: args.timestamp,
         },
       };
 
       // Save to Firestore
       const docRef = await this.getSubmissionsRef(
-          submission.stationId).add(submissionDoc);
+          args.stationId).add(submissionDoc);
 
       // Log the submission
       logger.logSubmissionData({
-        type: "story",
-        stationId: submission.stationId,
-        sessionId: submission.sessionId,
-        content: submission.description,
+        type,
+        stationId: args.stationId,
+        sessionId,
+        content: args.description,
         zapierResponse: response.ok ? "Success" : "Failed",
         submissionId: docRef.id,
       });
 
-      return {
-        id: docRef.id,
-        responseText: response.ok ?
-          "Thank you! I've submitted your story idea to our news team. " +
-          "Is there anything else I can help you with?" :
-          "I apologize, but there was an issue submitting your story. " +
-          "Please try again later.",
-      };
+      return responseText;
     } catch (error) {
-      // Keep detailed error logging for production issues
-      logger.error("Error creating story submission:", {
-        error: error.message,
-        stack: error.stack,
-        submissionDetails: {
-          stationId: submission.stationId,
-          sessionId: submission.sessionId,
-          timestamp: submission.timestamp,
-        },
-      });
+      logger.error("Error in handleSubmission:", {error: error.message});
       throw error;
     }
   }
