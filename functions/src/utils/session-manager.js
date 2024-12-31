@@ -119,7 +119,7 @@ const db = admin.firestore();
    * @return {Promise<Session|null>} Updated session or null if not found
    */
   async addMessage(sessionId, content, role, stationId) {
-    const session = await this.getSessionBySessionId(sessionId, stationId);
+    const session = await this.getSession(sessionId, stationId);
     if (!session) return null;
 
     const message = {
