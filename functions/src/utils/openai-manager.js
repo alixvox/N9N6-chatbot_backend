@@ -206,7 +206,8 @@ class OpenAIManager {
       const messages = await this.client.beta.threads.messages.list(
           session.threadId);
       const lastMessage = messages.data[0]; // Most recent message first
-      const messageContent = lastMessage.content[0].text.value;
+      const messageContent = JSON.parse(
+          lastMessage.content[0].text.value).message;
 
       // Return response in WatsonX format
       return {

@@ -8,33 +8,41 @@
  * @return {string} Formatted time string
  */
 function formatCurrentTimeCentral(format) {
-  const options = {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Chicago",
-    year: "2-digit",
-    month: "2-digit",
+    year: format === "submission" ? "numeric" : "2-digit",
+    month: format === "submission" ? "long" : "2-digit",
     day: "2-digit",
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
-  };
+  });
 
+  const parts = formatter.formatToParts(now);
+
+  // Create a safe document ID for sessions
   if (format === "session") {
-    options.year = "numeric";
-    options.month = "long";
+    const month = parts.find((p) => p.type === "month").value;
+    const day = parts.find((p) => p.type === "day").value;
+    const year = parts.find((p) => p.type === "year").value;
+    const hour = parts.find((p) => p.type === "hour").value;
+    const minute = parts.find((p) => p.type === "minute").value;
+    const second = parts.find((p) => p.type === "second").value;
+    const dayPeriod = parts.find((p) => p.type === "dayPeriod").value;
+
+    const date = `${month}-${day}-${year}`;
+    const time = `${hour}-${minute}-${second}-${dayPeriod}`;
+
+    return `${date}_${time}`;
   }
 
-  const centralTime = new Date().toLocaleString("en-US", options);
-
-  if (format === "submission") {
-    // Format: "11/29/24 at 4:59:10 PM"
-    return centralTime
-        .replace(",", "")
-        .replace(" ", " at ");
-  }
-
-  // Submission format remains unchanged
-  return centralTime.replace(" at ", " at ").replace(",", "");
+  // Regular format for submissions
+  return parts
+      .map(({type, value}) => value)
+      .join("")
+      .replace(",", "");
 }
 
 module.exports = {
