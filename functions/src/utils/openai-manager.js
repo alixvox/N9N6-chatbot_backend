@@ -206,7 +206,7 @@ class OpenAIManager {
       const messages = await this.client.beta.threads.messages.list(
           session.threadId);
       const lastMessage = messages.data[0]; // Most recent message first
-      return lastMessage.content[0].text.value;
+      return JSON.parse(lastMessage.content[0].text.value).response.message;
     } catch (error) {
       logger.error("Error in getResponseBody:", {
         error,
