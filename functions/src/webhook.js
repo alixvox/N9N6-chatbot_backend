@@ -86,14 +86,21 @@ const handleWebhookResponse = async (req, res, stationId) => {
     // Add assistant response to session
     await sessionManager.addMessage(
         sessionId,
-        responseBody.output.generic[0].text,
+        responseBody,
         "assistant",
         stationId,
     );
 
     // Set Watson header and send response
     res.set("X-Watson-Assistant-Webhook-Return", "true");
-    return res.json(responseBody);
+    return res.json({
+      output: {
+        generic: [{
+          response_type: "text",
+          text: responseBody,
+        }],
+      },
+    });
   } catch (error) {
     logger.error("Webhook Error:", {
       error: error.message,
