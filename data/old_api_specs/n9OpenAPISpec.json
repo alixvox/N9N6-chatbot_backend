@@ -1,0 +1,326 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "News9 Chatbot Zapier Extension API",
+    "version": "1.0.0",
+    "description": "API for sending chatbot data from News9 chatbots to Zapier."
+  },
+  "paths": {
+    "/2m25xzz": {
+      "post": {
+        "summary": "(News9) Send Session History",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "now": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of the session"
+                  },
+                  "session_history": {
+                    "type": "string",
+                    "description": "Serialized session history as a JSON string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Data sent successfully"
+          }
+        }
+      }
+    },
+    "/244cwdi": {
+      "post": {
+        "summary": "(News9) Send technical issues data to Zapier",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "now": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of the session"
+                  },
+                  "technicalCategory": {
+                    "type": "string",
+                    "description": "Category chosen by the user for their technical issue."
+                  },
+                  "technicalDate": {
+                    "type": "string",
+                    "description": "Date the technical issue occurs."
+                  },
+                  "technicalDescription": {
+                    "type": "string",
+                    "description": "Description of the technical issue."
+                  },
+                  "technicalLocation": {
+                    "type": "string",
+                    "description": "Device location/TV channel where the technical issue occurs."
+                  },
+                  "technicalSubCategory": {
+                    "type": "string",
+                    "description": "Subcategory of the technical issue, if applicable."
+                  },
+                  "userEmail": {
+                    "type": "string",
+                    "description": "Contact email of the user."
+                  },
+                  "userName": {
+                    "type": "string",
+                    "description": "Contact name of the user."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Data sent successfully"
+          }
+        }
+      }
+    },
+    "/244cagy": {
+      "post": {
+        "summary": "(News9) Send feedback and suggestions to Zapier",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "feedbackCategory": {
+                    "type": "string",
+                    "description": "Category chosen by the user for their feedback."
+                  },
+                  "feedbackDescription": {
+                    "type": "string",
+                    "description": "Description of the user's feedback."
+                  },
+                  "now": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of the session"
+                  },
+                  "userEmail": {
+                    "type": "string",
+                    "description": "Contact email of the user."
+                  },
+                  "userName": {
+                    "type": "string",
+                    "description": "Contact name of the user."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Data sent successfully"
+          }
+        }
+      }
+    },
+    "/244caam": {
+      "post": {
+        "summary": "(News9) Send advertising inquiry data to Zapier",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "adCompany": {
+                    "type": "string",
+                    "description": "Company name of the advertising inquirer."
+                  },
+                  "adDescription": {
+                    "type": "string",
+                    "description": "Description of the service/goods provided by the advertising inquirer's company."
+                  },
+                  "userEmail": {
+                    "type": "string",
+                    "description": "Contact email of the advertising inquirer."
+                  },
+                  "userName": {
+                    "type": "string",
+                    "description": "Name of the advertising inquirer."
+                  },
+                  "adPhone": {
+                    "type": "string",
+                    "description": "Contact phone number of the advertising inquirer."
+                  },
+                  "now": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of the session"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Data sent successfully"
+          }
+        }
+      }
+    },
+    "/create-account": {
+      "post": {
+        "summary": "Send create account data to Zapier (NOT FUNCTIONAL)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "now": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of the session"
+                  },
+                  "accountDOB": {
+                    "type": "number",
+                    "description": "MMDDYYYY birthdate/id PIN of the user"
+                  },
+                  "accountEmail": {
+                    "type": "string",
+                    "description": "Email of the new user's account"
+                  },
+                  "accountFirstName": {
+                    "type": "string",
+                    "description": "First name of the new user's account"
+                  },
+                  "accountLastName": {
+                    "type": "string",
+                    "description": "Last name of the new user's account"
+                  },
+                  "accountPhone": {
+                    "type": "string",
+                    "description": "Phone number of the new user's account (default is 0)"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Data sent successfully"
+          }
+        }
+      }
+    },
+    "/auth-user": {
+      "post": {
+        "summary": "Authenticate user (NOT FUNCTIONAL)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountDOB": {
+                    "type": "number",
+                    "description": "MMDDYYYY birthdate/id PIN of the user"
+                  },
+                  "accountEmail": {
+                    "type": "string",
+                    "description": "Email of the user"
+                  },
+                  "accountCurrPasswd": {
+                    "type": "string",
+                    "description": "Old password of the user"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "Authentication status",
+                      "enum": ["passed", "failed"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/update-passwd": {
+      "post": {
+        "summary": "Update user password (NOT FUNCTIONAL)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "now": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of the session"
+                  },
+                  "accountEmail": {
+                    "type": "string",
+                    "description": "Email of the user"
+                  },
+                  "accountNewPasswd": {
+                    "type": "string",
+                    "description": "New password of the user"
+                  },
+                  "accountCurrPasswd": {
+                    "type": "string",
+                    "description": "Old password of the user"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Data sent successfully"
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://hooks.zapier.com/hooks/catch/655388/",
+      "description": "Zapier Webhook"
+    }
+  ]
+}
