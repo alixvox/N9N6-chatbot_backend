@@ -22,7 +22,7 @@ async function executeFunction(functionName, args, sessionId, userId) {
       case "format_google_search":
         return functions.handleGoogleSearch(args);
 
-      case "get_oklahoma_weather":
+      case "get_weather":
         return functions.handleWeather(args);
 
       case "get_current_time":

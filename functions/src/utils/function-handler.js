@@ -86,7 +86,7 @@ async function handleSubmission(type, args, sessionId, userId) {
 }
 
 /**
- * Gets weather data for an Oklahoma location
+ * Gets weather data for a location
  * @param {Object} args - Function arguments from OpenAI
  * @return {Promise<Object>} Weather data
  */
@@ -95,42 +95,38 @@ async function handleWeather(args) {
     const apiKey = await secretsManager.getSecret("WEATHER_API_KEY");
     const location = encodeURIComponent(args.location);
 
-    // Get current weather
-    const currentResponse = await fetch(
-        `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${location}&aqi=no`,
+    // Get current weather and forecast in a single API call
+    const response = await fetch(
+        `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${location}&days=3&aqi=no`,
     );
 
-    if (!currentResponse.ok) {
+    if (!response.ok) {
       throw new Error("Weather API request failed");
     }
 
-    const currentData = await currentResponse.json();
+    const data = await response.json();
 
     const result = {
       current: {
-        temp_f: currentData.current.temp_f,
-        condition: currentData.current.condition.text,
-        wind_mph: currentData.current.wind_mph,
-        humidity: currentData.current.humidity,
+        temp_f: data.current.temp_f,
+        feels_like_f: data.current.feelslike_f,
+        condition: data.current.condition.text,
+        wind_mph: data.current.wind_mph,
+        wind_dir: data.current.wind_dir,
+        humidity: data.current.humidity,
+        precip_in: data.current.precip_in,
+        last_updated: data.current.last_updated,
       },
+      forecast: data.forecast.forecastday.map((day) => ({
+        date: day.date,
+        max_temp_f: day.day.maxtemp_f,
+        min_temp_f: day.day.mintemp_f,
+        condition: day.day.condition.text,
+        chance_of_rain: day.day.daily_chance_of_rain,
+        total_precip_in: day.day.totalprecip_in,
+        max_wind_mph: day.day.maxwind_mph,
+      })),
     };
-
-    // Get forecast if requested
-    if (args.include_forecast) {
-      const forecastResponse = await fetch(
-          `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${location}&days=3&aqi=no`,
-      );
-
-      if (forecastResponse.ok) {
-        const forecastData = await forecastResponse.json();
-        result.forecast = forecastData.forecast.forecastday.map((day) => ({
-          date: day.date,
-          max_temp_f: day.day.maxtemp_f,
-          min_temp_f: day.day.mintemp_f,
-          condition: day.day.condition.text,
-        }));
-      }
-    }
 
     return result;
   } catch (error) {

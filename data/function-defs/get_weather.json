@@ -1,0 +1,16 @@
+{
+  "name": "get_weather",
+  "description": "Get current weather and 3-day forecast for a location",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": "string",
+        "description": "City name, optionally with state (e.g., 'Tulsa', 'Oklahoma City, OK')"
+      }
+    },
+    "required": ["location"],
+    "additionalProperties": false
+  }
+}
