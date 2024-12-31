@@ -1,0 +1,25 @@
+{
+  "name": "submit_story",
+  "description": "Submit a story idea or news tip to the news team",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string",
+        "description": "Detailed description of the story or tip, including any relevant contact information and location if provided"
+      },
+      "stationId": {
+        "type": "string",
+        "enum": ["n6", "n9"],
+        "description": "The station identifier. Use the station you associate with: n6 for News on 6, n9 for News 9."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["story"]
+      }
+    },
+    "required": ["description", "stationId", "type"],
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "format_google_search",
+  "description": "Format a Google search URL to help users find specific stories on the station website. Keywords should be ordered by importance. Users may not include context other than the keywords for the story.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "keywords": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Keywords for the search query, ordered by importance (most important first). These will be joined with '+' symbols in the same order."
+      },
+      "siteUrl": {
+        "type": "string",
+        "enum": [
+          "site:newson6.com",
+          "site:news9.com"
+        ],
+        "description": "The website to restrict the search to"
+      }
+    },
+    "required": [
+      "keywords",
+      "siteUrl"
+    ],
+    "additionalProperties": false
+  }
+}

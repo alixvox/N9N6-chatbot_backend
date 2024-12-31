@@ -1,0 +1,25 @@
+{
+  "name": "submit_broadcast_technical",
+  "description": "Submit a technical issue or bug report of the broadcast or livestream to the engineering team",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string",
+        "description": "Detailed description of the technical issue or bug, including the access point, device, date/time of occurrence, and any relevant contact information if provided upon request"
+      },
+      "stationId": {
+        "type": "string",
+        "enum": ["n6", "n9"],
+        "description": "The station identifier. Use the station you associate with: n6 for News on 6, n9 for News 9."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["broadcast technical"]
+      }
+    },
+    "required": ["description", "stationId", "type"],
+    "additionalProperties": false
+  }
+}

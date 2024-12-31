@@ -1,0 +1,25 @@
+{
+  "name": "submit_advertising",
+  "description": "Submit a request for advertising or sponsor opportunities",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string",
+        "description": "Detailed description of the advertising or sponsor request, this requires contact name, email, phone, and company name, and can include any specific details or requirements for the request"
+      },
+      "stationId": {
+        "type": "string",
+        "enum": ["n6", "n9"],
+        "description": "The station identifier. Use the station you associate with: n6 for News on 6, n9 for News 9."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["advertising"]
+      }
+    },
+    "required": ["description", "stationId", "type"],
+    "additionalProperties": false
+  }
+}

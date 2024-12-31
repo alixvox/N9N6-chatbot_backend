@@ -1,0 +1,25 @@
+{
+  "name": "submit_digital_feedback",
+  "description": "Submit feedback for a story or content hosted on the website or app, not including feedback for the broadcast/livestream content. This can include feedback suggestions for features such as website & search functionality, the chatbot assistant (you), etc",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string",
+        "description": "Detailed description of the feedback, including any relevant contact information if provided upon request"
+      },
+      "stationId": {
+        "type": "string",
+        "enum": ["n6", "n9"],
+        "description": "The station identifier. Use the station you associate with: n6 for News on 6, n9 for News 9."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["digital feedback"]
+      }
+    },
+    "required": ["description", "stationId", "type"],
+    "additionalProperties": false
+  }
+}

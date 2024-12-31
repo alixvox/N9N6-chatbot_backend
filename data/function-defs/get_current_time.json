@@ -1,0 +1,17 @@
+{
+  "name": "get_current_time",
+  "description": "Get the current time in Central Time",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "format": {
+        "type": "string",
+        "enum": ["submission"],
+        "description": "The format to return the time in"
+      }
+    },
+    "required": ["format"],
+    "additionalProperties": false
+  }
+}
