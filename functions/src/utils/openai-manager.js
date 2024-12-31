@@ -206,7 +206,44 @@ class OpenAIManager {
       const messages = await this.client.beta.threads.messages.list(
           session.threadId);
       const lastMessage = messages.data[0]; // Most recent message first
-      return JSON.parse(lastMessage.content[0].text.value).response.message;
+      if (!lastMessage?.content?.[0]?.text?.value) {
+        logger.error("Invalid message format from OpenAI", {lastMessage});
+        throw new Error("Invalid response format from OpenAI");
+      }
+
+      try {
+        const parsedResponse = JSON.parse(lastMessage.content[0].text.value);
+
+        // Log the parsed structure to understand what we're dealing with
+        logger.info("Parsed OpenAI response", {parsedResponse});
+
+        let message;
+        if (parsedResponse.response?.message) {
+          message = parsedResponse.response.message;
+        } else if (parsedResponse.message) {
+          message = parsedResponse.message;
+        } else {
+          logger.error("Unexpected response format", {parsedResponse});
+          throw new Error("Unexpected response format from OpenAI");
+        }
+
+        // Validate that we got a string
+        if (typeof message !== "string") {
+          logger.error("Message is not a string", {
+            message,
+            type: typeof message,
+          });
+          throw new Error("Message must be a string");
+        }
+
+        return message;
+      } catch (error) {
+        logger.error("Failed to parse OpenAI response", {
+          error,
+          content: lastMessage.content[0].text.value,
+        });
+        throw new Error("Failed to parse OpenAI response");
+      }
     } catch (error) {
       logger.error("Error in getResponseBody:", {
         error,
