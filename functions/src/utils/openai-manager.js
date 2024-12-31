@@ -1,5 +1,5 @@
 /**
- * OpenAI integration handler
+ * OpenAI Assistants API integration handler
  * @module openai-manager
  */
 
@@ -9,159 +9,223 @@ const sessionManager = require("./session-manager");
 const functionManager = require("./function-manager");
 const secretsManager = require("./secrets-manager");
 
-/**
- * Creates a new OpenAI client instance
- * @return {Promise<{client: OpenAI, n6Id: string, n9Id: string}>}
- */
-const createOpenAIClient = async () => {
-  const apiKey = await secretsManager.getSecret("OPENAI_SERVICE_API_KEY");
-  const n9Id = await secretsManager.getSecret("N9_ASSISTANT_ID");
-  const n6Id = await secretsManager.getSecret("N6_ASSISTANT_ID");
-
-  return {
-    client: new OpenAI({apiKey}),
-    n6Id,
-    n9Id,
-  };
-};
+const POLLING_INTERVAL = 100;
+const MAX_POLLING_TIME = 20000; // 20 seconds
 
 /**
- * Gets the appropriate response text based on OpenAI's response
- * @param {string} stationId - The station identifier ('n6' or 'n9')
- * @param {string} sessionId - The session identifier
- * @param {string} userId - The user identifier
- * @return {Promise<Object>} Response body for WatsonX webhook
+ * Manages OpenAI API client and session polling
+ * @class OpenAIManager
  */
-const getResponseBody = async (stationId, sessionId, userId) => {
-  try {
-    // Get session data from Firestore
-    const sessionData = await sessionManager.getOrCreateSession(
-        sessionId,
-        userId,
-        stationId,
-    );
+class OpenAIManager {
+  /**
+   * Creates an OpenAIManager
+   * @constructor
+   * @property {OpenAI} client - OpenAI API client
+   * @property {string} n6Id - N6 assistant ID
+   * @property {string} n9Id - N9 assistant ID
+   */
+  constructor() {
+    this.client = null;
+    this.n6Id = null;
+    this.n9Id = null;
+  }
 
-    // Get OpenAI client
-    const {client, n6Id, n9Id} = await createOpenAIClient();
-    const assistantId = stationId === "n6" ? n6Id : n9Id;
+  /**
+   * Initializes the OpenAI client and loads assistant IDs
+   * @private
+   */
+  async init() {
+    if (this.client) return;
 
-    // Format messages for OpenAI
-    const messages = sessionData.conversationHistory
-        .filter((msg) => msg.content && msg.content.trim())
-        .map((msg) => ({
-          role: msg.role,
-          content: msg.content.trim(),
-        }));
+    const apiKey = await secretsManager.getSecret("OPENAI_SERVICE_API_KEY");
+    this.n6Id = await secretsManager.getSecret("N6_ASSISTANT_ID");
+    this.n9Id = await secretsManager.getSecret("N9_ASSISTANT_ID");
+    this.client = new OpenAI({apiKey});
+  }
 
-    // Initial API call to OpenAI
-    let response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages,
-      assistant_id: assistantId,
-    });
+  /**
+   * Polls a run until it completes or requires action
+   * @private
+   * @param {string} threadId - OpenAI thread ID
+   * @param {string} runId - OpenAI run ID
+   * @return {Promise<Object>} Final run status
+   */
+  async pollRunStatus(threadId, runId) {
+    const startTime = Date.now();
+    let isRunning = true;
+    let run;
 
-    const assistantMessage = response.choices[0].message;
+    while (isRunning) {
+      run = await this.client.beta.threads.runs.retrieve(threadId, runId);
 
-    // If it's a direct message (no function call)
-    if (assistantMessage.content && !assistantMessage.tool_calls) {
-      return {
-        output: {
-          generic: [{
-            response_type: "text",
-            text: assistantMessage.content,
-          }],
-        },
-      };
+      switch (run.status) {
+        case "completed":
+        case "requires_action":
+          isRunning = false;
+          break;
+        case "failed":
+        case "expired":
+        case "cancelled":
+          logger.error("Run ended with error status:", {
+            status: run.status,
+            threadId,
+            runId,
+          });
+          throw new Error(`Run failed with status: ${run.status}`);
+        case "queued":
+        case "in_progress":
+          if (Date.now() - startTime > MAX_POLLING_TIME) {
+            throw new Error("Run timed out");
+          }
+          await new Promise((resolve) => setTimeout(resolve, POLLING_INTERVAL));
+          break;
+        default:
+          throw new Error(`Unexpected run status: ${run.status}`);
+      }
     }
 
-    // If it's a function call
-    if (assistantMessage.tool_calls) {
-      const toolCall = assistantMessage.tool_calls[0];
+    return run;
+  }
 
-      logger.info("Received function call from OpenAI:", {
-        toolCall,
-        argumentType: typeof toolCall.function.arguments,
-      });
+  /**
+   * Handles function calls from the assistant
+   * @private
+   * @param {Object} run - OpenAI run object
+   * @param {string} threadId - OpenAI thread ID
+   * @param {string} sessionId - WatsonX session ID
+   * @param {string} userId - User ID
+   * @param {string} stationId - Station identifier ('n6' or 'n9')
+   */
+  async handleFunctionCalls(run, threadId, sessionId, userId, stationId) {
+    const toolCalls = run.required_action.submit_tool_outputs.tool_calls;
+    const toolOutputs = [];
 
-      const {name: functionName, arguments: argsString} = toolCall.function;
-
-      // Log before parsing to see the raw format
-      logger.info("Function arguments before parsing:", {
-        argsString,
-        isString: typeof argsString === "string",
-      });
-
+    for (const toolCall of toolCalls) {
+      const {name, arguments: argsString} = toolCall.function;
       const args = JSON.parse(argsString);
 
-      // Execute the function and get result
-      const functionResult = await functionManager.executeFunction(
-          functionName,
-          args,
+      // Add stationId to args for submission functions
+      if (name.startsWith("submit_")) {
+        args.stationId = stationId;
+      }
+
+      logger.info("Executing function from Assistant:", {
+        name,
+        args,
+        sessionId,
+        stationId,
+      });
+
+      try {
+        const result = await functionManager.executeFunction(
+            name,
+            args,
+            sessionId,
+            userId,
+        );
+
+        toolOutputs.push({
+          tool_call_id: toolCall.id,
+          output: JSON.stringify(result),
+        });
+      } catch (error) {
+        logger.error("Function execution failed:", {
+          error,
+          name,
           sessionId,
-          userId,
-      );
+          stationId,
+        });
 
-      logger.info("Function execution result:", {
-        functionName,
-        result: functionResult,
-        resultType: typeof functionResult,
+        toolOutputs.push({
+          tool_call_id: toolCall.id,
+          output: JSON.stringify({error: error.message}),
+        });
+      }
+    }
+
+    // Submit all tool outputs and continue the run
+    return await this.client.beta.threads.runs.submitToolOutputs(
+        threadId,
+        run.id,
+        {tool_outputs: toolOutputs},
+    );
+  }
+
+  /**
+   * Gets response from OpenAI Assistant
+   * @param {string} stationId - Station identifier ('n6' or 'n9')
+   * @param {string} sessionId - WatsonX session ID
+   * @param {string} userId - User ID
+   * @param {string} messageText - User's message
+   * @return {Promise<Object>} Response for WatsonX
+   */
+  async getResponseBody(stationId, sessionId, userId, messageText) {
+    try {
+      await this.init();
+
+      // Get existing session (we know it exists because webhook created it)
+      const session = await sessionManager.getSession(sessionId, stationId);
+      if (!session) {
+        throw new Error("Session not found");
+      }
+
+      // Create thread if it doesn't exist
+      if (!session.threadId) {
+        const thread = await this.client.beta.threads.create();
+        await sessionManager.updateThreadId(sessionId, thread.id, stationId);
+        session.threadId = thread.id;
+      }
+
+      // Add user's message to OpenAI thread
+      await this.client.beta.threads.messages.create(session.threadId, {
+        role: "user",
+        content: messageText,
       });
 
-      // Determine if we need to stringify the result
-      const resultContent = typeof functionResult === "string" ?
-        functionResult :
-        JSON.stringify(functionResult);
+      // Start a run with appropriate assistant
+      const assistantId = stationId === "n6" ? this.n6Id : this.n9Id;
+      const run = await this.client.beta.threads.runs.create(
+          session.threadId, {assistant_id: assistantId});
 
-      logger.info("Sending function result to OpenAI:", {
-        functionName,
-        resultContent,
-      });
+      // Poll for completion or action required
+      let currentRun = await this.pollRunStatus(session.threadId, run.id);
 
-      // Send function result back to OpenAI for final response
-      response = await client.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          ...messages,
-          assistantMessage,
-          {
-            role: "function",
-            name: functionName,
-            content: JSON.stringify(functionResult),
-          },
-        ],
-        assistant_id: assistantId,
-      });
+      // Handle any function calls
+      while (currentRun.status === "requires_action") {
+        currentRun = await this.handleFunctionCalls(
+            currentRun,
+            session.threadId,
+            sessionId,
+            userId,
+            stationId,
+        );
+        currentRun = await this.pollRunStatus(session.threadId, currentRun.id);
+      }
 
-      // Get final message that includes function result context
-      const finalMessage = response.choices[0].message;
+      // Get the assistant's response message
+      const messages = await this.client.beta.threads.messages.list(
+          session.threadId);
+      const lastMessage = messages.data[0]; // Most recent message first
+      const messageContent = lastMessage.content[0].text.value;
 
+      // Return response in WatsonX format
       return {
         output: {
           generic: [{
             response_type: "text",
-            text: finalMessage.content,
+            text: messageContent,
           }],
         },
       };
+    } catch (error) {
+      logger.error("Error in getResponseBody:", {
+        error,
+        sessionId,
+        stationId,
+      });
+      throw error;
     }
-
-    // Fallback response if something unexpected happened
-    return {
-      output: {
-        generic: [{
-          response_type: "text",
-          text: "I apologize, but I'm having trouble processing your " +
-          "request.\n\n" +
-          "Please try again.",
-        }],
-      },
-    };
-  } catch (error) {
-    logger.error("Error in getResponseBody:", error);
-    throw error;
   }
-};
+}
 
-module.exports = {
-  getResponseBody,
-};
+module.exports = new OpenAIManager();

@@ -51,40 +51,24 @@ const handleWebhookResponse = async (req, res, stationId) => {
       },
     } = req.body;
 
-    const stationName = stationId === "n6" ? "News on 6" : "News 9";
-
-    await sessionManager.getOrCreateSession(
-        sessionId,
-        userId,
-        stationId,
-    );
-
+    // Return empty response for empty messages
     if (!messageText) {
-      const welcomeMessage = [
-        `Hi! I’m Newsy, an AI assistant for ${stationName}.`,
-        "How can I help you today?",
-      ].join(" ");
-
-      // Pass session data to avoid another read
-      await sessionManager.updateSession(
-          sessionId,
-          welcomeMessage,
-          "assistant",
-          stationId,
-      );
-
       return res.json({
         output: {
-          generic: [{
-            response_type: "text",
-            text: welcomeMessage,
-          }],
+          generic: [],
         },
       });
     }
 
-    // Handle non-empty messages - pass session data to avoid reads
-    await sessionManager.updateSession(
+    // Get or create session
+    let session = await sessionManager.getSession(sessionId, stationId);
+    if (!session) {
+      session = await sessionManager.createSession(
+          sessionId, userId, stationId);
+    }
+
+    // Add user message to session
+    await sessionManager.addMessage(
         sessionId,
         messageText,
         "user",
@@ -96,10 +80,11 @@ const handleWebhookResponse = async (req, res, stationId) => {
         stationId,
         sessionId,
         userId,
+        messageText,
     );
 
-    // Update session with assistant's response
-    await sessionManager.updateSession(
+    // Add assistant response to session
+    await sessionManager.addMessage(
         sessionId,
         responseBody.output.generic[0].text,
         "assistant",

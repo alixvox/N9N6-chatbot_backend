@@ -74,15 +74,10 @@ async function handleSubmissionFunction(type, args, sessionId, userId) {
     const submissionDoc = {
       type,
       content: args.description,
-      timestamp: admin.firestore.Timestamp.now(),
       zapierResponse: response.ok ? "Success" : "Failed",
       sessionId,
       userId,
       created: admin.firestore.FieldValue.serverTimestamp(),
-      conversationRef: {
-        sessionId,
-        timestamp: formatCurrentTimeCentral(),
-      },
     };
 
     // Save to Firestore
