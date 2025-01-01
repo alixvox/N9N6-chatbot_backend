@@ -6,34 +6,42 @@ A Firebase-based middleware server that handles chatbot interactions between Wat
 
 ```
 .
-├── .firebaserc              # Firebase project configuration
-├── .github/                 # GitHub configurations
+├── .firebaserc                # Firebase project configuration
+├── .github/                   # GitHub configurations
 │   └── workflows/
 │       └── firebase-deploy.yml  # CI/CD deployment workflow
-├── data/                   # System instructions and function data
-│   └── funciton-defs/      # JSON schema for all functions
-│   └── n6-instructions.txt      # Instructions for News on 6 assistant
-│   └── n9-instructions.txt      # Instructions for News 9 assistant
-├── firebase.json           # Firebase service configurations
-├── firestore.indexes.json  # Firestore index configurations
-├── firestore.rules         # Firestore security rules
-├── functions/             # Firebase Functions directory
-│   ├── config/            # Firebase configuration files
+├── data/                      # System instructions and function data
+│   ├── function-defs/        # JSON schema for all functions
+│   ├── n6-instructions.txt   # Instructions for News on 6 assistant
+│   └── n9-instructions.txt   # Instructions for News 9 assistant
+├── firebase.json             # Firebase service configurations
+├── firestore.indexes.json    # Firestore index configurations
+├── firestore.rules           # Firestore security rules
+├── functions/                # Firebase Functions directory
+│   ├── config/              # Firebase configuration files
 │   │   └── n9n6-chatbot-backend-firebase-adminsdk-key.json
 │   ├── src/
-│   │   ├── utils/        # Utility modules
-│   │   │   ├── error-manager.js    # Error handling middleware
-│   │   │   ├── logger.js           # Firebase structured logging utilities
-│   │   │   ├── openai-manager.js   # OpenAI Assistants API integration
-│   │   │   ├── secrets-manager.js  # Google Cloud Secret Manager utility
-│   │   │   ├── session-manager.js  # Session management in Firestore
-│   │   │   └── function-manager.js # Function execution handling
-│   │   └── webhook.js    # Main webhook routes
-│   ├── .env              # Environment variables (local development)
-│   ├── .env.example      # Example environment variables
-│   ├── app.js           # Express app configuration
-│   └── index.js         # Firebase Functions entry point
-└── README.md            # Project documentation
+│   │   ├── functions/       # Function implementations
+│   │   │   ├── document-search.js    # Document assistant search functions
+│   │   │   ├── google-search.js      # Google search formatting
+│   │   │   ├── submission.js         # Submission handling
+│   │   │   └── weather.js            # Weather data functions
+│   │   ├── utils/          # Utility modules
+│   │   │   ├── cleanup-manager.js    # Session/submission cleanup
+│   │   │   ├── error-manager.js      # Error handling middleware
+│   │   │   ├── function-manager.js   # Function execution routing
+│   │   │   ├── logger.js             # Firebase structured logging
+│   │   │   ├── openai-manager.js     # OpenAI Assistants API integration
+│   │   │   ├── secrets-manager.js    # Google Cloud Secret Manager
+│   │   │   ├── session-manager.js    # Session management in Firestore
+│   │   │   ├── time-utils.js         # Time formatting utilities
+│   │   │   └── vector-store-manager.js # Vector store optimization
+│   │   └── webhook.js      # Main webhook routes
+│   ├── .env                # Environment variables (local development)
+│   ├── .env.example        # Example environment variables
+│   ├── app.js             # Express app configuration
+│   └── index.js           # Firebase Functions entry point
+└── README.md              # Project documentation
 ```
 
 ## Core Components
@@ -44,9 +52,9 @@ A Firebase-based middleware server that handles chatbot interactions between Wat
 
 - Firebase Functions entry point
 - Initializes Firebase Admin SDK
-- Exports the Express app as a Firebase Function
-- Handles webhook secret retrieval via Secrets Manager
-- Implements daily scheduled session cleanup
+- Exports HTTP endpoints and scheduled functions
+- Handles vector store optimization on cold starts
+- Implements weekly cleanup for sessions and submissions
 
 ### Webhook Handler (src/webhook.js)
 
@@ -68,33 +76,31 @@ Request Flow:
 6. Calls Function manager if a function call is needed
 7. Returns response to WatsonX Assistant
 
-### OpenAI Integration (src/utils/)
+### Function Implementations (src/functions/)
 
-#### openai-manager.js
+#### document-search.js
 
-Defines available functions for OpenAI to call:
+* Handles document assistant search queries
+* Manages OpenAI vector store integration
+* Processes and returns relevant document excerpts
 
-- Manages OpenAI Assistants API interaction
-- Creates and manages threads for conversations
-- Handles message processing and response parsing
-- Coordinates function execution through function manager
-- Maintains conversation context and history
-- Polls for completion of assistant tasks
-- Processes and validates assistant responses
+#### google-search.js
 
-#### function-manager.js
+* Formats Google search URLs for specific content
+* Creates targeted search queries
 
-Manages function execution:
+#### submission.js
 
-- Handles various user queries:
-  - Story submissions
-  - Feedback collection
-  - Technical support inquiries
-  - Advertising requests
-  - General information queries
-- Routes function calls to appropriate handlers
-- Calls Zapier webhooks for submissions
-- Validates function inputs and outputs
+* Processes various types of user submissions
+* Integrates with Zapier webhooks
+* Stores submissions in Firestore with timestamp-based IDs
+
+#### weather.js
+
+* Integrates with weather API
+* Provides current conditions and forecasts
+
+### Utility Modules (src/utils/)
 
 ### Session Management (src/utils/session-manager.js)
 
@@ -124,7 +130,6 @@ The project uses several Firebase services:
    - Hosts the middleware server
    - Handles webhook endpoints
    - Implements daily scheduled cleanup
-
 2. **Firestore**
 
    - Collections:
@@ -165,7 +170,6 @@ The project uses several Firebase services:
      }
    }
    ```
-
 3. **Firestore**
 
    - Runs daily at midnight (America/Chicago timezone)

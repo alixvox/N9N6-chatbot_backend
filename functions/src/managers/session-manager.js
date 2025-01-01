@@ -5,8 +5,8 @@
  * @class SessionManager
  */
 const admin = require("firebase-admin");
-const {formatCurrentTimeCentral} = require("./time-utils");
-const logger = require("./logger");
+const {formatCurrentTimeCentral} = require("../utils/time-utils");
+const logger = require("../utils/logger");
 
 const db = admin.firestore();
 

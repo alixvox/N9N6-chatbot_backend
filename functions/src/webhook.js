@@ -3,13 +3,12 @@
  * @file Express router configuration for Watson Assistant webhooks.
  * @module webhook
  */
-
 const express = require("express");
 // eslint-disable-next-line new-cap
 const router = express.Router();
-const sessionManager = require("./utils/session-manager");
 const logger = require("./utils/logger");
-const openAIManager = require("./utils/openai-manager");
+const openAIManager = require("./managers/openai-manager");
+const sessionManager = require("./managers/session-manager");
 
 const verifyWatsonxAuth = async (req, res, next) => {
   try {

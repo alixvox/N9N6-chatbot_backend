@@ -1,11 +1,11 @@
-// functions/src/utils/function-manager.js
+// functions/src/utils/secrets-manager.js
 /**
  * @file Centralized secret management utility
  * @module secrets-manager
  */
 
 const {SecretManagerServiceClient} = require("@google-cloud/secret-manager");
-const logger = require("./logger");
+const logger = require("../utils/logger");
 
 // Initialize Secret Manager client once
 const secretClient = new SecretManagerServiceClient();

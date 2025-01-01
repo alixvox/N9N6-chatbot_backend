@@ -1,9 +1,9 @@
-// functions/src/utils/function-manager.js
+// functions/src/managers/function-manager.js
 /**
  * @file Handles execution of functions called by OpenAI Assistant
  * @module function-manager
  */
-const logger = require("./logger");
+const logger = require("../utils/logger");
 const {formatCurrentTimeCentral} = require("../utils/time-utils");
 const {handleDocumentSearch} = require("../functions/document-search");
 const {handleGoogleSearch} = require("../functions/google-search");

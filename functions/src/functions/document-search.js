@@ -6,7 +6,7 @@
 
 const OpenAI = require("openai");
 const logger = require("../utils/logger");
-const secretsManager = require("../utils/secrets-manager");
+const secretsManager = require("../managers/secrets-manager");
 
 let client = null;
 let docAssistantId = null;

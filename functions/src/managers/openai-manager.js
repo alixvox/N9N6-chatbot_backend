@@ -5,7 +5,7 @@
  */
 
 const OpenAI = require("openai");
-const logger = require("./logger");
+const logger = require("../utils/logger");
 const sessionManager = require("./session-manager");
 const functionManager = require("./function-manager");
 const secretsManager = require("./secrets-manager");

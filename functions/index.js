@@ -14,9 +14,9 @@ const logger = require("firebase-functions/logger");
 admin.initializeApp();
 
 // Then require modules that depend on Firebase Admin
-const secretsManager = require("./src/utils/secrets-manager");
-const cleanupManager = require("./src/utils/cleanup-manager");
-const vectorStoreManager = require("./src/utils/vector-store-manager");
+const secretsManager = require("./src/managers/secrets-manager");
+const cleanupManager = require("./src/managers/cleanup-manager");
+const vectorStoreManager = require("./src/managers/vector-store-manager");
 
 // Import the Express app
 const app = require("./app");

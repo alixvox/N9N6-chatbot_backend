@@ -1,10 +1,10 @@
-// functions/src/utils/cleanup-manager.js
+// functions/src/managers/cleanup-manager.js
 /**
  * @file Manager for cleaning up old sessions and submissions
  * @module cleanup-manager
  */
 const admin = require("firebase-admin");
-const logger = require("./logger");
+const logger = require("../utils/logger");
 
 /**
  * Manager for cleaning up old sessions and submissions

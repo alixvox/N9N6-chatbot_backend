@@ -10,40 +10,58 @@
  */
 function formatCurrentTimeCentral(format) {
   const now = new Date();
+
+  if (format === "submission") {
+    // Submission display format: "January 01, 2025 at 1:03:25 PM"
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      year: "numeric",
+      month: "long",
+      day: "2-digit",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+
+    const parts = formatter.formatToParts(now);
+    const values = {};
+    parts.forEach(({type, value}) => {
+      values[type] = value;
+    });
+
+    return `${values.month} ${values.day}, ${values.year} at ${values.hour}:` +
+           `${values.minute}:${values.second} ${values.dayPeriod}`;
+  }
+
+  // Session format (and submission doc naming): "01-01-25 at 13:03 PM"
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Chicago",
-    year: format === "submission" ? "numeric" : "2-digit",
-    month: format === "submission" ? "long" : "2-digit",
+    year: "2-digit",
+    month: "2-digit",
     day: "2-digit",
     hour: "numeric",
     minute: "2-digit",
-    second: "2-digit",
     hour12: true,
   });
 
   const parts = formatter.formatToParts(now);
+  const values = {};
+  parts.forEach(({type, value}) => {
+    values[type] = value;
+  });
 
-  // Create a safe document ID for sessions
-  if (format === "session") {
-    const month = parts.find((p) => p.type === "month").value;
-    const day = parts.find((p) => p.type === "day").value;
-    const year = parts.find((p) => p.type === "year").value;
-    const hour = parts.find((p) => p.type === "hour").value;
-    const minute = parts.find((p) => p.type === "minute").value;
-    const second = parts.find((p) => p.type === "second").value;
-    const dayPeriod = parts.find((p) => p.type === "dayPeriod").value;
-
-    const date = `${month}-${day}-${year}`;
-    const time = `${hour}-${minute}-${second}-${dayPeriod}`;
-
-    return `${date}_${time}`;
+  // Convert to 24-hour format
+  let hour24 = parseInt(values.hour);
+  if (values.dayPeriod === "PM" && hour24 !== 12) {
+    hour24 += 12;
+  } else if (values.dayPeriod === "AM" && hour24 === 12) {
+    hour24 = 0;
   }
+  const hour24Str = String(hour24).padStart(2, "0");
 
-  // Regular format for submissions
-  return parts
-      .map(({type, value}) => value)
-      .join("")
-      .replace(",", "");
+  return `${values.month}-${values.day}-${values.year} at ${hour24Str}-` +
+         `${values.minute} ${values.dayPeriod}`;
 }
 
 module.exports = {
