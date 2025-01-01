@@ -172,7 +172,9 @@ class OpenAIManager {
 
       // Create thread if it doesn't exist
       if (!session.threadId) {
-        const thread = await this.client.beta.threads.create();
+        const thread = await this.client.beta.threads.create({
+          max_completion_tokens: 75,
+        });
         await sessionManager.updateThreadId(sessionId, thread.id, stationId);
         session.threadId = thread.id;
       }
