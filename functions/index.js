@@ -6,13 +6,13 @@
 
 const {onRequest} = require("firebase-functions/v2/https");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
-const {beforeAll} = require("firebase-functions/v2/tasks");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK first
 admin.initializeApp();
 
+// Then require modules that depend on Firebase Admin
 const secretsManager = require("./src/utils/secrets-manager");
 const documentManager = require("./src/utils/document-manager");
 const cleanupManager = require("./src/utils/cleanup-manager");
@@ -23,18 +23,17 @@ const app = require("./app");
 // Log initialization
 logger.info("Initializing Firebase Functions", {structuredData: true});
 
-/**
- * Sync documents with OpenAI vector store on deployment.
- */
-exports.beforeAllTasks = beforeAll(async (event) => {
+// Sync documents during deployment/cold start
+(async () => {
   try {
+    logger.info("Starting document sync...");
     await documentManager.syncDocuments();
-    logger.info("Documents synced on deployment");
+    logger.info("Document sync completed");
   } catch (error) {
-    logger.error("Error syncing documents on deployment:", error);
+    logger.error("Error during document sync:", error);
     throw error;
   }
-});
+})();
 
 /**
  * Main HTTP endpoint for the webhook API.
@@ -44,9 +43,9 @@ exports.api = onRequest({
   cors: true,
   maxInstances: 10,
   invoker: "public",
+  timeoutSeconds: 540,
 }, async (request, response) => {
   try {
-    // Get the webhook auth and attach it to the request
     request.auth = await secretsManager.getSecret("WATSONX_AUTH");
 
     logger.info("Received request", {
