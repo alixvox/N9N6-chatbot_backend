@@ -6,6 +6,7 @@
 
 const {onRequest} = require("firebase-functions/v2/https");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
+const {onInit} = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
 
@@ -15,12 +16,25 @@ admin.initializeApp();
 // Then require modules that depend on Firebase Admin
 const secretsManager = require("./src/utils/secrets-manager");
 const cleanupManager = require("./src/utils/cleanup-manager");
+const vectorStoreManager = require("./src/utils/vector-store-manager");
 
 // Import the Express app
 const app = require("./app");
 
 // Log initialization
 logger.info("Initializing Firebase Functions", {structuredData: true});
+
+// Initialize vector store optimization
+onInit(async () => {
+  try {
+    logger.info("Starting vector store optimization");
+    await vectorStoreManager.optimizeVectorStore();
+    logger.info("Vector store optimization completed");
+  } catch (error) {
+    logger.error("Error during vector store optimization:", error);
+    // Don't throw error to allow functions to start
+  }
+});
 
 /**
  * Main HTTP endpoint for the webhook API.
