@@ -14,7 +14,6 @@ admin.initializeApp();
 
 // Then require modules that depend on Firebase Admin
 const secretsManager = require("./src/utils/secrets-manager");
-const documentManager = require("./src/utils/document-manager");
 const cleanupManager = require("./src/utils/cleanup-manager");
 
 // Import the Express app
@@ -22,18 +21,6 @@ const app = require("./app");
 
 // Log initialization
 logger.info("Initializing Firebase Functions", {structuredData: true});
-
-// Sync documents during deployment/cold start
-(async () => {
-  try {
-    logger.info("Starting document sync...");
-    await documentManager.syncDocuments();
-    logger.info("Document sync completed");
-  } catch (error) {
-    logger.error("Error during document sync:", error);
-    throw error;
-  }
-})();
 
 /**
  * Main HTTP endpoint for the webhook API.
