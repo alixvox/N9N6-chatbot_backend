@@ -1,5 +1,6 @@
+// functions/src/webhook.js
 /**
- * Express router configuration for Watson Assistant webhooks.
+ * @file Express router configuration for Watson Assistant webhooks.
  * @module webhook
  */
 

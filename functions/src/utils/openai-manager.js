@@ -1,5 +1,6 @@
+// functions/src/utils/openai-manager.js
 /**
- * OpenAI Assistants API integration handler
+ * @file OpenAI Assistants API integration handler
  * @module openai-manager
  */
 
@@ -9,7 +10,7 @@ const sessionManager = require("./session-manager");
 const functionManager = require("./function-manager");
 const secretsManager = require("./secrets-manager");
 
-const POLLING_INTERVAL = 100;
+const POLLING_INTERVAL = 500;
 const MAX_POLLING_TIME = 20000; // 20 seconds
 
 /**

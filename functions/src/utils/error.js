@@ -1,5 +1,6 @@
+// functions/src/utils/error.js
 /**
- * Global error handler middleware.
+ * @file Global error handler middleware.
  * @param {Error} err - Error object
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object

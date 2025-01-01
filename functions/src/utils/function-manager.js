@@ -1,10 +1,14 @@
+// functions/src/utils/function-manager.js
 /**
- * Handles execution of functions called by OpenAI Assistant
+ * @file Handles execution of functions called by OpenAI Assistant
  * @module function-manager
  */
-
 const logger = require("./logger");
-const functions = require("./function-handler");
+const {formatCurrentTimeCentral} = require("../utils/time-utils");
+const {handleDocmentSearch} = require("../functions/document-search");
+const {handleGoogleSearch} = require("../functions/google-search");
+const {handleSubmission} = require("../functions/submission");
+const {handleWeather} = require("../functions/weather");
 
 /**
  * Main function execution handler
@@ -20,35 +24,38 @@ async function executeFunction(functionName, args, sessionId, userId) {
   try {
     switch (functionName) {
       case "format_google_search":
-        return functions.handleGoogleSearch(args);
+        return handleGoogleSearch(args);
 
       case "get_weather":
-        return functions.handleWeather(args);
+        return handleWeather(args);
 
       case "get_current_time":
-        return functions.handleCurrentTime(args);
+        return formatCurrentTimeCentral(args);
+
+      case "document_search":
+        return handleDocmentSearch(args);
 
       case "submit_story":
-        return functions.handleSubmission("story", args, sessionId, userId);
+        return handleSubmission("story", args, sessionId, userId);
 
       case "submit_digital_feedback":
-        return functions.handleSubmission(
+        return handleSubmission(
             "digital feedback", args, sessionId, userId);
 
       case "submit_broadcast_feedback":
-        return functions.handleSubmission(
+        return handleSubmission(
             "broadcast feedback", args, sessionId, userId);
 
       case "submit_digital_technical":
-        return functions.handleSubmission(
+        return handleSubmission(
             "digital technical", args, sessionId, userId);
 
       case "submit_broadcast_technical":
-        return functions.handleSubmission(
+        return handleSubmission(
             "broadcast technical", args, sessionId, userId);
 
       case "submit_advertising":
-        return functions.handleSubmission(
+        return handleSubmission(
             "advertising", args, sessionId, userId);
 
       default:

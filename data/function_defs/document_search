@@ -1,0 +1,16 @@
+{
+  "name": "document_search",
+  "description": "Search company documentation and website information using the Griffin Media Document Assistant",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The search query or question about Griffin Media, News 9, or News on 6 information"
+      }
+    },
+    "required": ["query"],
+    "additionalProperties": false
+  }
+}

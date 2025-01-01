@@ -1,6 +1,6 @@
+// functions/src/utils/logger.js
 /**
- * Logging utility for N6 and N9 chatbots.
- * Handles structured logging to Firebase.
+ * @file Firebase logging utility for N6 and N9 chatbots.
  * @module logger
  */
 

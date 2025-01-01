@@ -1,5 +1,6 @@
+// functions/src/utils/function-manager.js
 /**
- * Centralized secret management utility
+ * @file Centralized secret management utility
  * @module secrets-manager
  */
 

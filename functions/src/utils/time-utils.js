@@ -1,5 +1,6 @@
+// functions/src/utils/time-utils.js
 /**
- * Utility functions for time formatting
+ * @file Utility functions for time formatting
  * @module time-utils
  */
 /**

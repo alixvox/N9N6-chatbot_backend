@@ -1,6 +1,6 @@
+// functions/src/utils/session-manager.js
 /**
- * Session manager for N6 and N9 chatbots.
- * Handles creating, updating and deleting chat session
+ * @file Handles creating, updating and deleting chat session
  * history onto Firebase.
  * @class SessionManager
  */

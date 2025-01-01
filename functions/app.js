@@ -1,5 +1,6 @@
+// functions/app.js
 /**
- * Express application setup and configuration.
+ * @file Express application setup and configuration.
  * @module app
  */
 
