@@ -12,6 +12,7 @@ const secretsManager = require("./secrets-manager");
 
 const POLLING_INTERVAL = 500;
 const MAX_POLLING_TIME = 20000; // 20 seconds
+const MAX_COMPLETION_TOKENS = 75;
 
 /**
  * Manages OpenAI API client and session polling
@@ -172,9 +173,7 @@ class OpenAIManager {
 
       // Create thread if it doesn't exist
       if (!session.threadId) {
-        const thread = await this.client.beta.threads.create({
-          max_completion_tokens: 75,
-        });
+        const thread = await this.client.beta.threads.create();
         await sessionManager.updateThreadId(sessionId, thread.id, stationId);
         session.threadId = thread.id;
       }
@@ -188,7 +187,10 @@ class OpenAIManager {
       // Start a run with appropriate assistant
       const assistantId = stationId === "n6" ? this.n6Id : this.n9Id;
       const run = await this.client.beta.threads.runs.create(
-          session.threadId, {assistant_id: assistantId});
+          session.threadId, {
+            assistant_id: assistantId,
+            max_completion_tokens: MAX_COMPLETION_TOKENS,
+          });
 
       // Poll for completion or action required
       let currentRun = await this.pollRunStatus(session.threadId, run.id);
