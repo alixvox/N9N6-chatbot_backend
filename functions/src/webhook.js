@@ -92,6 +92,18 @@ const handleWebhookResponse = async (req, res, stationId) => {
         stationId,
     );
 
+    logger.info("Final response to WatsonX", {
+      responseBody,
+      fullResponse: {
+        output: {
+          generic: [{
+            response_type: "text",
+            text: responseBody,
+          }],
+        },
+      },
+    });
+
     // Set Watson header and send response
     res.set("X-Watson-Assistant-Webhook-Return", "true");
     return res.json({
