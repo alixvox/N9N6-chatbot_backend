@@ -4,20 +4,13 @@
  * @module cleanup-manager
  */
 const admin = require("firebase-admin");
-const logger = require("firebase-functions/logger");
+const logger = require("./logger");
 
 /**
  * Manager for cleaning up old sessions and submissions
  * @class CleanupManager
  */
 class CleanupManager {
-  /**
-   * Creates an instance of CleanupManager
-   */
-  constructor() {
-    this.db = admin.firestore();
-  }
-
   /**
    * Gets timestamp for last week's Sunday midnight
    * @private
@@ -49,80 +42,79 @@ class CleanupManager {
   }
 
   /**
-   * Cleans up old sessions and submissions for a station
-   * @param {string} stationId - Station identifier ('n6' or 'n9')
+   * Cleans up old sessions and submissions for both stations
    * @return {Promise<void>}
    */
-  async cleanupStation(stationId) {
+  async cleanupStations() {
     const weekStart = this.getPreviousWeekStart();
     const weekEnd = this.getCurrentWeekStart();
+    const db = admin.firestore();
+    const stations = ["n6", "n9"];
 
     try {
-      // Clean sessions
-      const sessionsRef = this.db.collection(`sessions_${stationId}`);
-      const oldSessions = await sessionsRef
-          .where("lastActivity", ">=", weekStart)
-          .where("lastActivity", "<", weekEnd)
-          .get();
+      const cleanupResults = await Promise.all(
+          stations.map(async (stationId) => {
+          // Clean sessions
+            const sessionsRef = db.collection(`sessions_${stationId}`);
+            const oldSessions = await sessionsRef
+                .where("lastActivity", ">=", weekStart)
+                .where("lastActivity", "<", weekEnd)
+                .get();
 
-      // Clean submissions
-      const submissionsRef = this.db.collection(`submissions_${stationId}`);
-      const oldSubmissions = await submissionsRef
-          .where("created", ">=", weekStart)
-          .where("created", "<", weekEnd)
-          .get();
+            // Clean submissions
+            const submissionsRef = db.collection(`submissions_${stationId}`);
+            const oldSubmissions = await submissionsRef
+                .where("created", ">=", weekStart)
+                .where("created", "<", weekEnd)
+                .get();
 
-      // Batch delete in chunks of 500 (Firestore limit)
-      const deleteInBatches = async (querySnapshot) => {
-        const batches = [];
-        let batch = this.db.batch();
-        let count = 0;
+            // Batch delete in chunks of 500 (Firestore limit)
+            const deleteInBatches = async (querySnapshot) => {
+              const batches = [];
+              let batch = db.batch();
+              let count = 0;
 
-        querySnapshot.forEach((doc) => {
-          batch.delete(doc.ref);
-          count++;
+              querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+                count++;
 
-          if (count === 500) {
-            batches.push(batch.commit());
-            batch = this.db.batch();
-            count = 0;
-          }
-        });
+                if (count === 500) {
+                  batches.push(batch.commit());
+                  batch = db.batch();
+                  count = 0;
+                }
+              });
 
-        if (count > 0) {
-          batches.push(batch.commit());
-        }
+              if (count > 0) {
+                batches.push(batch.commit());
+              }
 
-        await Promise.all(batches);
-        return querySnapshot.size;
-      };
+              await Promise.all(batches);
+              return querySnapshot.size;
+            };
 
-      const [sessionsDeleted, submissionsDeleted] = await Promise.all([
-        deleteInBatches(oldSessions),
-        deleteInBatches(oldSubmissions),
-      ]);
+            const [sessionsDeleted, submissionsDeleted] = await Promise.all([
+              deleteInBatches(oldSessions),
+              deleteInBatches(oldSubmissions),
+            ]);
 
-      logger.info(`Cleanup completed for ${stationId}`, {
-        sessionsDeleted,
-        submissionsDeleted,
+            return {
+              stationId,
+              sessionsDeleted,
+              submissionsDeleted,
+            };
+          }),
+      );
+
+      logger.info("Cleanup completed for all stations", {
+        results: cleanupResults,
         weekStart: new Date(weekStart).toISOString(),
         weekEnd: new Date(weekEnd).toISOString(),
       });
     } catch (error) {
-      logger.error(`Error cleaning up ${stationId}:`, error);
+      logger.error("Error cleaning up stations:", error);
       throw error;
     }
-  }
-
-  /**
-   * Cleans up all stations
-   * @return {Promise<void>}
-   */
-  async cleanupAll() {
-    await Promise.all([
-      this.cleanupStation("n6"),
-      this.cleanupStation("n9"),
-    ]);
   }
 }
 

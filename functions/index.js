@@ -9,12 +9,13 @@ const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {beforeAll} = require("firebase-functions/v2/tasks");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
-const secretsManager = require("./src/utils/secrets-manager");
-const documentManager = require("./src/utils/document-manager");
-const cleanupManager = require("./src/utils/cleanup-manager");
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
+
+const secretsManager = require("./src/utils/secrets-manager");
+const documentManager = require("./src/utils/document-manager");
+const cleanupManager = require("./src/utils/cleanup-manager");
 
 // Import the Express app
 const app = require("./app");
@@ -71,7 +72,7 @@ exports.weeklyCleanup = onSchedule({
   retryCount: 3,
 }, async (event) => {
   try {
-    await cleanupManager.cleanupAll();
+    await cleanupManager.cleanupStations();
     logger.info("Weekly cleanup completed");
   } catch (error) {
     logger.error("Error in weekly cleanup:", error);
