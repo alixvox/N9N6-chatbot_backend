@@ -7,8 +7,8 @@ const express = require("express");
 // eslint-disable-next-line new-cap
 const router = express.Router();
 const logger = require("./utils/logger");
-const openAIManager = require("./managers/openai-manager");
-const sessionManager = require("./managers/session-manager");
+const openAIManager = require("./managers/openai");
+const sessionManager = require("./managers/session");
 
 const verifyWatsonxAuth = async (req, res, next) => {
   try {

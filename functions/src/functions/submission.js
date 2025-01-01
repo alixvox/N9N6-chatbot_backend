@@ -6,7 +6,7 @@
 
 const admin = require("firebase-admin");
 const logger = require("../utils/logger");
-const secretsManager = require("../managers/secrets-manager");
+const secretsManager = require("../managers/secrets");
 const {formatCurrentTimeCentral} = require("../utils/time-utils");
 
 const db = admin.firestore();

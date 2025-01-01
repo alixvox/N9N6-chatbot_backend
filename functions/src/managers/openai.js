@@ -6,9 +6,9 @@
 
 const OpenAI = require("openai");
 const logger = require("../utils/logger");
-const sessionManager = require("./session-manager");
-const functionManager = require("./function-manager");
-const secretsManager = require("./secrets-manager");
+const sessionManager = require("./session");
+const functionManager = require("./function");
+const secretsManager = require("./secrets");
 
 const POLLING_INTERVAL = 500;
 const MAX_POLLING_TIME = 20000; // 20 seconds

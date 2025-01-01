@@ -5,7 +5,7 @@
  */
 
 const logger = require("../utils/logger");
-const secretsManager = require("../managers/secrets-manager");
+const secretsManager = require("../managers/secrets");
 
 /**
  * Gets weather data for a location
