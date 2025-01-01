@@ -214,6 +214,11 @@ class OpenAIManager {
         throw new Error("Invalid response format from OpenAI");
       }
 
+      logger.info("Raw OpenAI response", {
+        rawContent: lastMessage.content[0].text.value,
+        fullMessage: lastMessage,
+      });
+
       try {
         const parsedResponse = JSON.parse(lastMessage.content[0].text.value);
 
@@ -243,9 +248,10 @@ class OpenAIManager {
       } catch (error) {
         logger.error("Failed to parse OpenAI response", {
           error,
-          content: lastMessage.content[0].text.value,
+          rawContent: lastMessage.content[0].text.value,
+          type: typeof lastMessage.content[0].text.value,
         });
-        throw new Error("Failed to parse OpenAI response");
+        throw error;
       }
     } catch (error) {
       logger.error("Error in getResponseBody:", {
