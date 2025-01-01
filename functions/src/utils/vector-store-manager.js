@@ -1,16 +1,11 @@
-// functions/src/utils/vector-store-manager.js
 /**
  * @file Manages vector store operations for document assistant
  * @module vector-store-manager
  */
 
-const admin = require("firebase-admin");
 const OpenAI = require("openai");
 const logger = require("./logger");
 const secretsManager = require("./secrets-manager");
-
-const db = admin.firestore();
-const VECTOR_STORE_DOC = "config/vector_store";
 
 let client = null;
 
@@ -22,6 +17,30 @@ async function initClient() {
   if (client) return;
   const apiKey = await secretsManager.getSecret("OPENAI_SERVICE_API_KEY");
   client = new OpenAI({apiKey});
+}
+
+/**
+ * Gets current vector store ID from Secret Manager
+ * @private
+ * @return {Promise<string|null>} Current vector store ID or null
+ */
+async function getCurrentVectorStoreId() {
+  try {
+    return await secretsManager.getSecret("VECTOR_STORE_ID");
+  } catch (error) {
+    logger.warn("No existing vector store ID found in secrets");
+    return null;
+  }
+}
+
+/**
+ * Updates vector store ID in Secret Manager
+ * @private
+ * @param {string} vectorStoreId - New vector store ID
+ */
+async function updateVectorStoreId(vectorStoreId) {
+  await secretsManager.updateSecret("VECTOR_STORE_ID", vectorStoreId);
+  logger.info("Updated vector store ID in secrets");
 }
 
 /**
@@ -79,28 +98,6 @@ async function needsOptimization(vectorStoreId) {
 }
 
 /**
- * Gets current vector store ID from Firestore
- * @private
- * @return {Promise<string|null>} Current vector store ID or null
- */
-async function getCurrentVectorStoreId() {
-  const doc = await db.doc(VECTOR_STORE_DOC).get();
-  return doc.exists ? doc.data().vectorStoreId : null;
-}
-
-/**
- * Updates vector store ID in Firestore
- * @private
- * @param {string} vectorStoreId - New vector store ID
- */
-async function updateVectorStoreId(vectorStoreId) {
-  await db.doc(VECTOR_STORE_DOC).set({
-    vectorStoreId,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-}
-
-/**
  * Gets file IDs from existing vector store
  * @private
  * @param {string} vectorStoreId - Vector store ID
@@ -109,8 +106,8 @@ async function updateVectorStoreId(vectorStoreId) {
 async function getExistingFileIds(vectorStoreId) {
   const fileIds = [];
   try {
-    for await (
-      const file of client.beta.vector_stores.files.list(vectorStoreId)) {
+    for await (const file of client.beta.vector_stores.files.list(
+        vectorStoreId)) {
       fileIds.push(file.id);
     }
   } catch (error) {
@@ -127,10 +124,10 @@ async function optimizeVectorStore() {
   try {
     await initClient();
 
-    // Get current vector store ID
+    // Get current vector store ID from secrets
     const currentVectorStoreId = await getCurrentVectorStoreId();
     if (!currentVectorStoreId) {
-      logger.warn("No existing vector store ID found");
+      logger.warn("No existing vector store ID found in secrets");
       return;
     }
 
@@ -141,13 +138,12 @@ async function optimizeVectorStore() {
       return;
     }
 
-    // Rest of the optimization code remains the same...
+    // Get existing files
     const fileIds = await getExistingFileIds(currentVectorStoreId);
     if (fileIds.length === 0) {
       logger.warn("No files found in current vector store");
       return;
     }
-
 
     // Create new optimized vector store
     logger.info("Creating new optimized vector store");
@@ -199,13 +195,13 @@ async function optimizeVectorStore() {
       },
     });
 
+    // Update stored vector store ID in secrets before deleting old one
+    await updateVectorStoreId(newVectorStore.id);
+
     // Delete old vector store
     if (currentVectorStoreId) {
       await client.beta.vector_stores.del(currentVectorStoreId);
     }
-
-    // Update stored vector store ID
-    await updateVectorStoreId(newVectorStore.id);
 
     logger.info("Vector store optimization complete", {
       newVectorStoreId: newVectorStore.id,
