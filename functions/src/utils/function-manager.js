@@ -5,7 +5,7 @@
  */
 const logger = require("./logger");
 const {formatCurrentTimeCentral} = require("../utils/time-utils");
-const {handleDocmentSearch} = require("../functions/document-search");
+const {handleDocumentSearch} = require("../functions/document-search");
 const {handleGoogleSearch} = require("../functions/google-search");
 const {handleSubmission} = require("../functions/submission");
 const {handleWeather} = require("../functions/weather");
@@ -33,7 +33,7 @@ async function executeFunction(functionName, args, sessionId, userId) {
         return formatCurrentTimeCentral(args);
 
       case "document_search":
-        return handleDocmentSearch(args);
+        return handleDocumentSearch(args);
 
       case "submit_story":
         return handleSubmission("story", args, sessionId, userId);
