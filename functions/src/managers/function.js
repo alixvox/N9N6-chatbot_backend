@@ -7,7 +7,7 @@ const logger = require("../utils/logger");
 const {formatCurrentTimeCentral} = require("../utils/time-utils");
 const {handleDocumentSearch} = require("../functions/document-search");
 const {handleSubmission} = require("../functions/submission");
-const {handleWeather} = require("../functions/weather");
+const {getWeather} = require("../functions/weather");
 
 /**
  * Main function execution handler
@@ -23,7 +23,7 @@ async function executeFunction(functionName, args, sessionId, userId) {
   try {
     switch (functionName) {
       case "get_weather":
-        return handleWeather(args);
+        return getWeather(args);
 
       case "get_current_time":
         return formatCurrentTimeCentral(args);
