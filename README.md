@@ -23,7 +23,6 @@ A Firebase-based middleware server that handles chatbot interactions between Wat
 │   ├── src/               # Source code
 │   │   ├── functions/     # Function implementations
 │   │   │   ├── document-search.js    # Document assistant search
-│   │   │   ├── google-search.js      # Google search formatting
 │   │   │   ├── submission.js         # Form submissions
 │   │   │   └── weather.js            # Weather data
 │   │   ├── managers/     # State and operation managers
@@ -48,20 +47,20 @@ A Firebase-based middleware server that handles chatbot interactions between Wat
 ## Data Flow
 
 1. **Incoming Request (WatsonX Assistant → Webhook)**
-   * WatsonX Assistant sends message to appropriate station endpoint
-   * Webhook verifies secret and extracts session info/message
+   - WatsonX Assistant sends message to appropriate station endpoint
+   - Webhook verifies secret and extracts session info/message
 2. **Session Management**
-   * Create/update session in Firestore with timestamp-based ID
-   * Create OpenAI thread if needed
-   * Update message history
+   - Create/update session in Firestore with timestamp-based ID
+   - Create OpenAI thread if needed
+   - Update message history
 3. **OpenAI Processing**
-   * Send message to OpenAI Assistant
-   * Handle any function calls through function manager
-   * Parse and validate assistant response
+   - Send message to OpenAI Assistant
+   - Handle any function calls through function manager
+   - Parse and validate assistant response
 4. **Response**
-   * Store assistant response in session
-   * Format response for WatsonX
-   * Send formatted response back to WatsonX Assistant
+   - Store assistant response in session
+   - Format response for WatsonX
+   - Send formatted response back to WatsonX Assistant
 
 ## Core Components
 
@@ -99,25 +98,20 @@ Request Flow:
 
 #### document-search.js
 
-* Handles document assistant search queries
-* Manages OpenAI vector store integration
-* Processes and returns relevant document excerpts
-
-#### google-search.js
-
-* Formats Google search URLs for specific content
-* Creates targeted search queries
+- Handles document assistant search queries
+- Manages OpenAI vector store integration
+- Processes and returns relevant document excerpts
 
 #### submission.js
 
-* Processes various types of user submissions
-* Integrates with Zapier webhooks
-* Stores submissions in Firestore with timestamp-based IDs
+- Processes various types of user submissions
+- Integrates with Zapier webhooks
+- Stores submissions in Firestore with timestamp-based IDs
 
 #### weather.js
 
-* Integrates with weather API
-* Provides current conditions and forecasts
+- Integrates with weather API
+- Provides current conditions and forecasts
 
 ### State & Operation Managers (src/managers/)
 
@@ -125,74 +119,73 @@ Firebase Configuration
 
 #### openai.js
 
-* Manages OpenAI Assistants API interaction
-* Creates and manages threads for conversations
-* Handles message processing and response parsing
-* Coordinates function execution through function manager
-* Maintains conversation context and history
+- Manages OpenAI Assistants API interaction
+- Creates and manages threads for conversations
+- Handles message processing and response parsing
+- Coordinates function execution through function manager
+- Maintains conversation context and history
 
-#### function-manager.js
+#### function.js
 
 Routes and executes various function types:
 
-* Story submissions
-* Feedback collection
-* Technical support
-* Advertising requests
-* Document searches
-* Weather queries
-* Google search formatting
+- Story submissions
+- Feedback collection
+- Technical support
+- Advertising requests
+- Document searches
+- Weather queries
 
 #### session-manager.js
 
 Manages chat sessions using Firebase Firestore:
 
-* Creates sessions with timestamp-based IDs (format: "MM-DD-YY at HH-MM-SS AM/PM")
-* Stores message history and thread IDs
-* Handles session updates and retrieval
-* No in-memory caching (serverless architecture)
+- Creates sessions with timestamp-based IDs (format: "MM-DD-YY at HH-MM-SS AM/PM")
+- Stores message history and thread IDs
+- Handles session updates and retrieval
+- No in-memory caching (serverless architecture)
 
 #### vector-store-manager.js
 
-* Manages document assistant vector store optimization
-* Handles chunking and ranking configurations
-* Performs initial setup and periodic optimization
+- Manages document assistant vector store optimization
+- Handles chunking and ranking configurations
+- Performs initial setup and periodic optimization
 
 #### cleanup-manager.js
 
-* Implements weekly cleanup of old sessions and submissions
-* Runs every Wednesday at midnight (Central Time)
-* Removes data from previous week
+- Implements weekly cleanup of old sessions and submissions
+- Runs every Wednesday at midnight (Central Time)
+- Removes data from previous week
 
 ### Utilities (src/utils/)
 
 #### error.js
 
-* Global error handler middleware
-* Provides consistent error response format
-* Logs errors through Firebase logger
+- Global error handler middleware
+- Provides consistent error response format
+- Logs errors through Firebase logger
 
 #### logger.js
 
-* Implements structured logging through Firebase
-* Provides specialized logging for:
-  * Session activity
-  * Submissions
-  * Errors and warnings
-  * General information
-* Includes methods for accessing logs via Firebase Console or CLI
-* Adds timestamps and structured data to all logs
+- Implements structured logging through Firebase
+- Provides specialized logging for:
+  - Session activity
+  - Submissions
+  - Errors and warnings
+  - General information
+- Includes methods for accessing logs via Firebase Console or CLI
+- Adds timestamps and structured data to all logs
 
 #### time-utils.js
 
-* Handles time formatting in Central Time
-* Provides two format types:
+- Handles time formatting in Central Time
+- Provides two format types:
   1. Session format: "MM-DD-YY at HH-MM AM/PM"
-     * Used for session and submission document IDs
-     * Uses 24-hour time format for consistency
+     - Used for session and submission document IDs
+     - Uses 24-hour time format for consistency
   2. Submission display format: "Month DD, YYYY at HH:MM:SS AM/PM"
-     * Used for human-readable timestamps
-     * Includes full month name and seconds
+     - Used for human-readable timestamps
+     - Includes full month name and seconds
 
 ## Firebase Configuration
 
@@ -201,59 +194,61 @@ Manages chat sessions using Firebase Firestore:
 #### 1. Session Document Structure:
 
 ```javascript
-sessions_n9/
-sessions_n6/
-{
-  sessionId: string,      // WatsonX session ID
-  userId: string,         // User identifier
-  threadId: string,       // OpenAI thread ID
-  messages: [{
-    role: "user" | "assistant",
-    content: string,
-    timestamp: string
-  }],
-  lastActivity: timestamp
-}
+sessions_n9 /
+  sessions_n6 /
+  {
+    sessionId: string, // WatsonX session ID
+    userId: string, // User identifier
+    threadId: string, // OpenAI thread ID
+    messages: [
+      {
+        role: "user" | "assistant",
+        content: string,
+        timestamp: string,
+      },
+    ],
+    lastActivity: timestamp,
+  };
 ```
 
 #### 2. Submission Document Structure:
 
 ```javascript
-submissions_n9/
-submissions_n6/
-{
-  type: string,           // Submission type
-  content: string,        // Submission content
-  zapierResponse: "Success" | "Failed",
-  sessionId: string,      // Related session ID
-  userId: string,         // User identifier
-  created: timestamp      // Server timestamp
-}
+submissions_n9 /
+  submissions_n6 /
+  {
+    type: string, // Submission type
+    content: string, // Submission content
+    zapierResponse: "Success" | "Failed",
+    sessionId: string, // Related session ID
+    userId: string, // User identifier
+    created: timestamp, // Server timestamp
+  };
 ```
 
 ### Scheduled Functions
 
 1. **Weekly Cleanup** (cleanup-manager.js)
-   * Runs every Wednesday at midnight (Central Time)
-   * Removes sessions and submissions from previous week
-   * Uses batch operations for efficient cleanup
+   - Runs every Wednesday at midnight (Central Time)
+   - Removes sessions and submissions from previous week
+   - Uses batch operations for efficient cleanup
 2. **Vector Store Optimization** (vector-store-manager.js)
-   * Runs on cold starts
-   * Optimizes document search configurations
-   * Updates chunking and ranking settings
+   - Runs on cold starts
+   - Optimizes document search configurations
+   - Updates chunking and ranking settings
 
 ## Secrets Management
 
 Using Google Cloud Secret Manager for:
 
-* `WATSONX_AUTH`: WatsonX webhook authentication
-* `ZAPIER_WEBHOOK`: Story submission webhook URL
-* `OPENAI_SERVICE_API_KEY`: OpenAI API authentication
-* `N6_ASSISTANT_ID`: News ON 6 OpenAI Assistant ID
-* `N9_ASSISTANT_ID`: News 9 OpenAI Assistant ID
-* `GM_DOC_ASSISTANT_ID`: Document Assistant ID
-* `VECTOR_STORE_ID`: Current vector store ID
-* `WEATHER_API_KEY`: Weather API authentication
+- `WATSONX_AUTH`: WatsonX webhook authentication
+- `ZAPIER_WEBHOOK`: Story submission webhook URL
+- `OPENAI_SERVICE_API_KEY`: OpenAI API authentication
+- `N6_ASSISTANT_ID`: News ON 6 OpenAI Assistant ID
+- `N9_ASSISTANT_ID`: News 9 OpenAI Assistant ID
+- `GM_DOC_ASSISTANT_ID`: Document Assistant ID
+- `VECTOR_STORE_ID`: Current vector store ID
+- `WEATHER_API_KEY`: Weather API authentication
 
 ## Environment Variables
 
