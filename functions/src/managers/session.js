@@ -10,6 +10,9 @@ const logger = require("../utils/logger");
 
 const db = admin.firestore();
 
+const SESSION_EXPIRY_MS = 60 * 60 * 1000; // 1 hour in milliseconds
+const MAX_MESSAGES = 20;
+
 /**
  * @class SessionManager
  * @description Manages chat session data for N6 and N9 chatbots,
@@ -27,16 +30,43 @@ const db = admin.firestore();
   }
 
   /**
+   * Deletes a session from Firestore
+   * @param {string} userId - WatsonX user identifier
+   * @param {string} stationId - Station identifier ('n6' or 'n9')
+   * @return {Promise<boolean>} Success status
+   */
+  async getActiveUserSession(userId, stationId) {
+    const currentTime = Date.now();
+    const snapshot = await this._getSessionsRef(stationId)
+        .where("userId", "==", userId)
+        .orderBy("lastActivity", "desc")
+        .limit(1)
+        .get();
+
+    if (snapshot.empty) {
+      return {session: null, docId: null};
+    }
+
+    const doc = snapshot.docs[0];
+    const session = doc.data();
+
+    // Check if session is expired (1 hour of inactivity)
+    if (currentTime - session.lastActivity > SESSION_EXPIRY_MS) {
+      return {session: null, docId: null};
+    }
+
+    return {session, docId: doc.id};
+  }
+
+  /**
    * Creates a new session with OpenAI thread
-   * @param {string} sessionId - WatsonX session identifier
    * @param {string} userId - User identifier
    * @param {string} stationId - Station identifier ('n6' or 'n9')
    * @return {Promise<Session>} Newly created session
    */
-  async createSession(sessionId, userId, stationId) {
+  async createUserSession(userId, stationId) {
     const docId = formatCurrentTimeCentral("session");
     const session = {
-      sessionId,
       userId,
       threadId: null,
       messages: [],
@@ -47,80 +77,102 @@ const db = admin.firestore();
         .doc(docId)
         .set(session);
 
-    logger.info("Created new session", {
-      sessionId,
+    logger.info("Created new user session", {
       userId,
       stationId,
       docId,
     });
 
-    return session;
+    return {session, docId};
+  }
+
+  /**
+     * Gets or creates a session for a user
+     * @param {string} userId - User identifier
+     * @param {string} stationId - Station identifier ('n6' or 'n9')
+     * @return {Promise<{session: Object,
+     * docId: string,
+     * isNew: boolean}>} - Session info
+     */
+  async getOrCreateUserSession(userId, stationId) {
+    const {session, docId} = await this.getActiveUserSession(userId, stationId);
+
+    if (session) {
+      return {session, docId, isNew: false};
+    }
+
+    const newSession = await this.createUserSession(userId, stationId);
+    return {...newSession, isNew: true};
+  }
+
+  /**
+     * Checks if a user's session has reached the message limit
+     * @param {Object} session - Session object
+     * @return {Object} Status object with count and warning message
+     */
+  checkMessageLimit(session) {
+    const assistantCount = session.messages.filter(
+        (msg) => msg.role === "assistant",
+    ).length;
+
+    let warningMessage = null;
+    if (assistantCount === MAX_MESSAGES - 2) {
+      warningMessage = "[2 more responses remaining for the advanced AI.]\n";
+    } else if (assistantCount === MAX_MESSAGES - 1) {
+      warningMessage = "[1 more response remaining for the advanced AI.]\n";
+    } else if (assistantCount >= MAX_MESSAGES) {
+      warningMessage = "[Message limit for the advanced AI reached. " +
+      "Limit resets in 1 hour.]\n";
+    }
+
+    return {
+      count: assistantCount,
+      hasReachedLimit: assistantCount >= MAX_MESSAGES,
+      warningMessage,
+    };
   }
 
   /**
    * Updates the OpenAI thread ID for a session
-   * @param {string} sessionId - WatsonX session identifier
+   * @param {string} docId - Firestore document ID
    * @param {string} threadId - OpenAI thread identifier
    * @param {string} stationId - Station identifier ('n6' or 'n9')
    * @return {Promise<boolean>} Success status
    */
-  async updateThreadId(sessionId, threadId, stationId) {
-    const snapshot = await this._getSessionsRef(stationId)
-        .where("sessionId", "==", sessionId)
-        .limit(1)
-        .get();
+  async updateThreadId(docId, threadId, stationId) {
+    try {
+      await this._getSessionsRef(stationId)
+          .doc(docId)
+          .update({threadId});
 
-    if (snapshot.empty) {
-      logger.error("Session not found for thread ID update", {
-        sessionId,
+      logger.info("Updated thread ID for session", {
+        docId,
         threadId,
         stationId,
       });
+
+      return true;
+    } catch (error) {
+      logger.error("Error updating thread ID", {
+        docId,
+        threadId,
+        stationId,
+        error: error.message,
+      });
       return false;
     }
-
-    const docRef = snapshot.docs[0].ref;
-    await docRef.update({threadId});
-
-    logger.info("Updated thread ID for session", {
-      sessionId,
-      threadId,
-      stationId,
-    });
-
-    return true;
-  }
-
-  /**
-   * Retrieves a session by WatsonX session ID
-   * @param {string} sessionId - WatsonX session identifier
-   * @param {string} stationId - Station identifier ('n6' or 'n9')
-   * @return {Promise<Session|null>} Session data or null if not found
-   */
-  async getSession(sessionId, stationId) {
-    const snapshot = await this._getSessionsRef(stationId)
-        .where("sessionId", "==", sessionId)
-        .limit(1)
-        .get();
-
-    if (snapshot.empty) {
-      return null;
-    }
-
-    return snapshot.docs[0].data();
   }
 
   /**
    * Adds a new message to the session
-   * @param {string} sessionId - WatsonX session identifier
+   * @param {string} docId - Firestore document ID
    * @param {string} content - Message content
    * @param {string} role - Message role ('user' or 'assistant')
    * @param {string} stationId - Station identifier ('n6' or 'n9')
-   * @return {Promise<Session|null>} Updated session or null if not found
+   * @return {Promise<Object|null>} Updated session or null if not found
    */
-  async addMessage(sessionId, content, role, stationId) {
-    const session = await this.getSession(sessionId, stationId);
-    if (!session) return null;
+  async addMessage(docId, content, role, stationId) {
+    const docRef = this._getSessionsRef(stationId).doc(docId);
 
     const message = {
       role,
@@ -128,42 +180,30 @@ const db = admin.firestore();
       timestamp: new Date().toISOString(),
     };
 
-    const snapshot = await this._getSessionsRef(stationId)
-        .where("sessionId", "==", sessionId)
-        .limit(1)
-        .get();
+    try {
+      await docRef.update({
+        messages: admin.firestore.FieldValue.arrayUnion(message),
+        lastActivity: Date.now(),
+      });
 
-    if (snapshot.empty) return null;
+      logger.info("Added message to session", {
+        docId,
+        stationId,
+        role,
+        timestamp: message.timestamp,
+      });
 
-    const docRef = snapshot.docs[0].ref;
-
-    await docRef.update({
-      messages: admin.firestore.FieldValue.arrayUnion(message),
-      lastActivity: Date.now(),
-    });
-
-    logger.info("Added message to session", {
-      sessionId,
-      stationId,
-      role,
-      timestamp: message.timestamp,
-    });
-
-    const updatedDoc = await docRef.get();
-    return updatedDoc.data();
-  }
-
-  /**
- * Counts the number of assistant messages in a session
- * @param {string} sessionId - WatsonX session identifier
- * @param {string} stationId - Station identifier ('n6' or 'n9')
- * @return {Promise<number>} Number of assistant messages
- */
-  async getAssistantMessageCount(sessionId, stationId) {
-    const session = await this.getSession(sessionId, stationId);
-    if (!session) return 0;
-
-    return session.messages.filter((msg) => msg.role === "assistant").length;
+      const updatedDoc = await docRef.get();
+      return updatedDoc.data();
+    } catch (error) {
+      logger.error("Error adding message", {
+        docId,
+        stationId,
+        role,
+        error: error.message,
+      });
+      return null;
+    }
   }
 }
 
