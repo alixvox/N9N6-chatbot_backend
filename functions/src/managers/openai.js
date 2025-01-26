@@ -93,11 +93,11 @@ class OpenAIManager {
    * @private
    * @param {Object} run - OpenAI run object
    * @param {string} threadId - OpenAI thread ID
-   * @param {string} sessionId - WatsonX session ID
+   * @param {string} docId - Firestore document ID
    * @param {string} userId - User ID
    * @param {string} stationId - Station identifier ('n6' or 'n9')
    */
-  async handleFunctionCalls(run, threadId, sessionId, userId, stationId) {
+  async handleFunctionCalls(run, threadId, docId, userId, stationId) {
     const toolCalls = run.required_action.submit_tool_outputs.tool_calls;
     const toolOutputs = [];
 
@@ -113,7 +113,7 @@ class OpenAIManager {
       logger.info("Executing function from Assistant:", {
         name,
         args,
-        sessionId,
+        docId,
         stationId,
       });
 
@@ -121,7 +121,7 @@ class OpenAIManager {
         const result = await functionManager.executeFunction(
             name,
             args,
-            sessionId,
+            docId,
             userId,
         );
 
@@ -133,7 +133,7 @@ class OpenAIManager {
         logger.error("Function execution failed:", {
           error,
           name,
-          sessionId,
+          docId,
           stationId,
         });
 
@@ -158,25 +158,27 @@ class OpenAIManager {
   /**
    * Gets response from OpenAI Assistant
    * @param {string} stationId - Station identifier ('n6' or 'n9')
-   * @param {string} sessionId - WatsonX session ID
+   * @param {string} docId - Firestore document ID
    * @param {string} userId - User ID
    * @param {string} messageText - User's message
    * @return {Promise<Object>} Response for WatsonX
    */
-  async getResponseBody(stationId, sessionId, userId, messageText) {
+  async getResponseBody(stationId, docId, userId, messageText) {
     try {
       await this.init();
 
-      // Get existing session (we know it exists because webhook created it)
-      const session = await sessionManager.getSession(sessionId, stationId);
-      if (!session) {
-        throw new Error("Session not found");
+      // Get existing session document
+      const docRef = sessionManager._getSessionsRef(stationId).doc(docId);
+      const docSnapshot = await docRef.get();
+      if (!docSnapshot.exists) {
+        throw new Error("Session document not found");
       }
+      const session = docSnapshot.data();
 
       // Create thread if it doesn't exist
       if (!session.threadId) {
         const thread = await this.client.beta.threads.create();
-        await sessionManager.updateThreadId(sessionId, thread.id, stationId);
+        await sessionManager.updateThreadId(docId, thread.id, stationId);
         session.threadId = thread.id;
       }
 
@@ -202,7 +204,7 @@ class OpenAIManager {
           currentRun = await this.handleFunctionCalls(
               currentRun,
               session.threadId,
-              sessionId,
+              docId,
               userId,
               stationId,
           );
@@ -270,7 +272,7 @@ class OpenAIManager {
     } catch (error) {
       logger.error("Error in getResponseBody:", {
         error,
-        sessionId,
+        docId,
         stationId,
       });
       throw error;
