@@ -14,12 +14,7 @@
         "firebase-debug.*.log",
         "*.local"
       ],
-      "predeploy": ["npm --prefix ./functions run lint"],
-      "runtime": {
-        "maxInstances": 10,
-        "timeoutSeconds": 60,
-        "retryOnFailure": false
-      }
+      "predeploy": ["npm --prefix ./functions run lint"]
     }
   ],
   "emulators": {
