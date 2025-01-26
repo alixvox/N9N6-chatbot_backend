@@ -53,23 +53,21 @@ class OpenAIManager {
    */
   async pollRunStatus(threadId, runId) {
     const startTime = Date.now();
+    let isRunning = true;
     let run;
-    let retryCount = 0;
 
-    do {
+    while (isRunning) {
       run = await this.client.beta.threads.runs.retrieve(threadId, runId);
 
       switch (run.status) {
         case "completed":
-          logger.info("Run completed successfully", {threadId, runId});
-          return run;
         case "requires_action":
-          logger.info("Run requires action", {threadId, runId});
-          return run;
+          isRunning = false;
+          break;
         case "failed":
         case "expired":
         case "cancelled":
-          logger.error("Run ended with error status", {
+          logger.error("Run ended with error status:", {
             status: run.status,
             threadId,
             runId,
@@ -78,27 +76,14 @@ class OpenAIManager {
         case "queued":
         case "in_progress":
           if (Date.now() - startTime > MAX_POLLING_TIME) {
-            logger.error("Run polling timed out", {threadId, runId});
-            throw new Error("Run polling exceeded maximum allowed time");
+            throw new Error("Run timed out");
           }
-          if (retryCount % 5 === 0) { // Logs every 5 retries
-            logger.info("Run in progress or queued, retrying...", {
-              threadId,
-              runId,
-              retryCount});
-          }
-          retryCount++;
           await new Promise((resolve) => setTimeout(resolve, POLLING_INTERVAL));
           break;
         default:
-          logger.error("Unexpected run status encountered", {
-            status: run.status,
-            threadId,
-            runId,
-          });
           throw new Error(`Unexpected run status: ${run.status}`);
       }
-    } while (run.status === "queued" || run.status === "in_progress");
+    }
 
     return run;
   }
@@ -152,18 +137,17 @@ class OpenAIManager {
           stationId,
         });
 
-        toolOutputs.push({
-          tool_call_id: toolCall.id,
-          output: JSON.stringify({error: error.message}),
-        });
+        // Cancel the run immediately to prevent retries
+        await this.client.beta.threads.runs.cancel(threadId, run.id);
 
-        // Terminate polling if the function fails
-        throw new Error(`
-          Function execution failed for ${name}: ${error.message}`);
+        // Throw error with a flag indicating it's already been handled
+        const handledError = new Error("Function execution terminated");
+        handledError.handled = true;
+        throw handledError;
       }
     }
 
-    // Submit all tool outputs and continue the run
+    // Only submit tool outputs if we haven't encountered any errors
     return await this.client.beta.threads.runs.submitToolOutputs(
         threadId,
         run.id,
@@ -214,14 +198,25 @@ class OpenAIManager {
 
       // Handle any function calls
       while (currentRun.status === "requires_action") {
-        currentRun = await this.handleFunctionCalls(
-            currentRun,
-            session.threadId,
-            sessionId,
-            userId,
-            stationId,
-        );
-        currentRun = await this.pollRunStatus(session.threadId, currentRun.id);
+        try {
+          currentRun = await this.handleFunctionCalls(
+              currentRun,
+              session.threadId,
+              sessionId,
+              userId,
+              stationId,
+          );
+          currentRun = await this.pollRunStatus(
+              session.threadId,
+              currentRun.id);
+        } catch (error) {
+          if (error.handled) {
+            // Return a user-friendly message instead of retrying
+            return "I apologize, but I'm having trouble processing that " +
+            "request. Please try asking in a different way.";
+          }
+          throw error; // Re-throw unhandled errors
+        }
       }
 
       // Get the assistant's response message
