@@ -10,7 +10,7 @@ const logger = require("../utils/logger");
 
 const db = admin.firestore();
 
-const SESSION_EXPIRY_MS = 60 * 60 * 1000; // 1 hour in milliseconds
+const SESSION_EXPIRY_MS = 180 * 60 * 1000; // 3 hours in milliseconds
 const MAX_MESSAGES = 20;
 
 /**
@@ -122,7 +122,7 @@ const MAX_MESSAGES = 20;
       warningMessage = "[1 more response remaining for the advanced AI.]\n";
     } else if (assistantCount >= MAX_MESSAGES) {
       warningMessage = "[Message limit for the advanced AI reached. " +
-      "Limit resets in 1 hour.]\n";
+      "Reverting to the previous model.]\n";
     }
 
     return {
