@@ -53,21 +53,23 @@ class OpenAIManager {
    */
   async pollRunStatus(threadId, runId) {
     const startTime = Date.now();
-    let isRunning = true;
     let run;
+    let retryCount = 0;
 
-    while (isRunning) {
+    do {
       run = await this.client.beta.threads.runs.retrieve(threadId, runId);
 
       switch (run.status) {
         case "completed":
+          logger.info("Run completed successfully", {threadId, runId});
+          return run;
         case "requires_action":
-          isRunning = false;
-          break;
+          logger.info("Run requires action", {threadId, runId});
+          return run;
         case "failed":
         case "expired":
         case "cancelled":
-          logger.error("Run ended with error status:", {
+          logger.error("Run ended with error status", {
             status: run.status,
             threadId,
             runId,
@@ -76,14 +78,27 @@ class OpenAIManager {
         case "queued":
         case "in_progress":
           if (Date.now() - startTime > MAX_POLLING_TIME) {
-            throw new Error("Run timed out");
+            logger.error("Run polling timed out", {threadId, runId});
+            throw new Error("Run polling exceeded maximum allowed time");
           }
+          if (retryCount % 5 === 0) { // Logs every 5 retries
+            logger.info("Run in progress or queued, retrying...", {
+              threadId,
+              runId,
+              retryCount});
+          }
+          retryCount++;
           await new Promise((resolve) => setTimeout(resolve, POLLING_INTERVAL));
           break;
         default:
+          logger.error("Unexpected run status encountered", {
+            status: run.status,
+            threadId,
+            runId,
+          });
           throw new Error(`Unexpected run status: ${run.status}`);
       }
-    }
+    } while (run.status === "queued" || run.status === "in_progress");
 
     return run;
   }
@@ -141,6 +156,10 @@ class OpenAIManager {
           tool_call_id: toolCall.id,
           output: JSON.stringify({error: error.message}),
         });
+
+        // Terminate polling if the function fails
+        throw new Error(`
+          Function execution failed for ${name}: ${error.message}`);
       }
     }
 
