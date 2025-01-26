@@ -152,6 +152,19 @@ const db = admin.firestore();
     const updatedDoc = await docRef.get();
     return updatedDoc.data();
   }
+
+  /**
+ * Counts the number of assistant messages in a session
+ * @param {string} sessionId - WatsonX session identifier
+ * @param {string} stationId - Station identifier ('n6' or 'n9')
+ * @return {Promise<number>} Number of assistant messages
+ */
+  async getAssistantMessageCount(sessionId, stationId) {
+    const session = await this.getSession(sessionId, stationId);
+    if (!session) return 0;
+
+    return session.messages.filter((msg) => msg.role === "assistant").length;
+  }
 }
 
 module.exports = new SessionManager();

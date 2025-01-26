@@ -10,6 +10,13 @@ const logger = require("./utils/logger");
 const openAIManager = require("./managers/openai");
 const sessionManager = require("./managers/session");
 
+const MAX_ASSISTANT_MESSAGES = 20;
+const WARNING_MESSAGES = {
+  18: "[2 more responses with the current AI.]\n",
+  19: "[1 more response with the current AI.]\n",
+  20: "[Now returning to older AI for the duration of this session.]\n",
+};
+
 const verifyWatsonxAuth = async (req, res, next) => {
   try {
     const auth = req.auth;
@@ -67,6 +74,22 @@ const handleWebhookResponse = async (req, res, stationId) => {
           sessionId, userId, stationId);
     }
 
+    // Check message count
+    const assistantMessageCount = await sessionManager.getAssistantMessageCount(
+        sessionId, stationId);
+
+    // If we've reached the limit, return an error to trigger WatsonX fallback
+    if (assistantMessageCount >= MAX_ASSISTANT_MESSAGES) {
+      logger.info("Session reached message limit, returning error", {
+        sessionId,
+        stationId,
+        messageCount: assistantMessageCount,
+      });
+      return res.status(429).json({
+        error: "Message limit exceeded",
+      });
+    }
+
     // Add user message to session
     await sessionManager.addMessage(
         sessionId,
@@ -76,12 +99,17 @@ const handleWebhookResponse = async (req, res, stationId) => {
     );
 
     // Get response from OpenAI manager
-    const responseBody = await openAIManager.getResponseBody(
+    let responseBody = await openAIManager.getResponseBody(
         stationId,
         sessionId,
         userId,
         messageText,
     );
+
+    // Add warning message if approaching limit
+    if (WARNING_MESSAGES[assistantMessageCount + 1]) {
+      responseBody = WARNING_MESSAGES[assistantMessageCount + 1] + responseBody;
+    }
 
     // Add assistant response to session
     await sessionManager.addMessage(
@@ -93,6 +121,7 @@ const handleWebhookResponse = async (req, res, stationId) => {
 
     logger.info("Final response to WatsonX", {
       responseBody,
+      messageCount: assistantMessageCount + 1,
       fullResponse: {
         output: {
           generic: [{
