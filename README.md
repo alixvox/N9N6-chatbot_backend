@@ -51,10 +51,12 @@ A Firebase-based middleware server that handles chatbot interactions between Wat
    - Webhook verifies secret and extracts session info/message
 2. **Session Management**
    - Create/retrieve session based on userId with timestamp-based ID
-   - Sessions expire after 3 hours of inactivity
-   - Limited to 20 assistant messages per session
-   - Provides warning messages at 18th, 19th, and 20th messages
-   - After 20 messages or 3-hour expiry, creates new session for user3. **OpenAI Processing**
+   - Sessions expire after 30 minutes of inactivity
+   - After expiry, new session is created for user when they next interact
+   - Limited to 20 total user messages in a session
+   - Provides warning messages at user's 18th, 19th, and 20th messages
+   - After 20 messages, must wait 3 hours before sending new messages
+   - During 3-hour cooldown, returns error 429 to WatsonX**OpenAI Processing**
    - Send message to OpenAI Assistant
    - Handle any function calls through function manager
    - Parse and validate assistant response
@@ -137,13 +139,14 @@ Routes and executes various function types:
 - Document searches
 - Weather queries
 
-#### session-manager.js
+#### session.js
 
 Manages chat sessions using Firebase Firestore:
 
 - Creates sessions with timestamp-based IDs (format: "MM-DD-YY at HH-MM-SS AM/PM")
 - Stores message history and thread IDs
-- Handles session updates and retrieval
+- Enforces 30-minute session expiry
+- Enforces 3-hour cooldown after reaching message limit
 - No in-memory caching (serverless architecture)
 
 #### vector-store-manager.js
