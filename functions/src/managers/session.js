@@ -117,17 +117,17 @@ const MAX_MESSAGES = 20;
 
     let warningMessage = null;
     if (assistantCount === MAX_MESSAGES - 2) {
-      warningMessage = "[2 more responses remaining for the advanced AI.]\n";
+      warningMessage = "\n\n[2 more responses remaining for the advanced AI.]";
     } else if (assistantCount === MAX_MESSAGES - 1) {
-      warningMessage = "[1 more response remaining for the advanced AI.]\n";
-    } else if (assistantCount >= MAX_MESSAGES) {
-      warningMessage = "[Message limit for the advanced AI reached. " +
-      "Reverting to the previous model.]\n";
+      warningMessage = "\n\n[1 more response remaining for the advanced AI.]";
+    } else if (assistantCount === MAX_MESSAGES) {
+      warningMessage = "\n\n[Message limit for the advanced AI reached. " +
+      "Reverting to the previous model.]";
     }
 
     return {
       count: assistantCount,
-      hasReachedLimit: assistantCount >= MAX_MESSAGES,
+      hasReachedLimit: assistantCount > MAX_MESSAGES,
       warningMessage,
     };
   }

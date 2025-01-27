@@ -100,7 +100,7 @@ const handleWebhookResponse = async (req, res, stationId) => {
 
     // Add warning message if approaching limit
     if (limitStatus.warningMessage) {
-      responseBody = limitStatus.warningMessage + responseBody;
+      responseBody = responseBody + limitStatus.warningMessage;
     }
 
     // Add assistant response to session
