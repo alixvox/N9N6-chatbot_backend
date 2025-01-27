@@ -60,11 +60,24 @@ const handleWebhookResponse = async (req, res, stationId) => {
       });
     }
 
-    // Get or create session based on userId
-    const {session, docId, isNew} = await sessionManager.getOrCreateUserSession(
+    // Get or create session with all checks
+    const {session, docId, status, remainingCooldown} =
+        await sessionManager.getOrCreateUserSession(userId, stationId);
+
+    // Handle cooldown period
+    if (status === "cooldown") {
+      const cooldownMinutes = Math.ceil(remainingCooldown / (60 * 1000));
+      logger.info("User in cooldown period", {
         userId,
         stationId,
-    );
+        cooldownMinutes,
+      });
+      return res.status(429).json({
+        error: "Message limit exceeded",
+        message: `Please wait ${cooldownMinutes} minutes before ` +
+        `starting a new chat.`,
+      });
+    }
 
     // Check message limits
     const limitStatus = sessionManager.checkMessageLimit(session);
@@ -113,8 +126,7 @@ const handleWebhookResponse = async (req, res, stationId) => {
 
     logger.info("Final response to WatsonX", {
       responseBody,
-      messageCount: limitStatus.count + 1,
-      isNewSession: isNew,
+      messageCount: limitStatus.count,
       fullResponse: {
         output: {
           generic: [{

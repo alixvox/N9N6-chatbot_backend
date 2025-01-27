@@ -50,14 +50,15 @@ A Firebase-based middleware server that handles chatbot interactions between Wat
    - WatsonX Assistant sends message to appropriate station endpoint
    - Webhook verifies secret and extracts session info/message
 2. **Session Management**
-   - Create/update session in Firestore with timestamp-based ID
-   - Create OpenAI thread if needed
-   - Update message history
-3. **OpenAI Processing**
+   - Create/retrieve session based on userId with timestamp-based ID
+   - Sessions expire after 3 hours of inactivity
+   - Limited to 20 assistant messages per session
+   - Provides warning messages at 18th, 19th, and 20th messages
+   - After 20 messages or 3-hour expiry, creates new session for user3. **OpenAI Processing**
    - Send message to OpenAI Assistant
    - Handle any function calls through function manager
    - Parse and validate assistant response
-4. **Response**
+3. **Response**
    - Store assistant response in session
    - Format response for WatsonX
    - Send formatted response back to WatsonX Assistant
@@ -193,37 +194,35 @@ Manages chat sessions using Firebase Firestore:
 
 #### 1. Session Document Structure:
 
+Document ID format: `MM-DD-YY at HH-MM-SS AM/PM` (Central Time)
+
 ```javascript
-sessions_n9 /
-  sessions_n6 /
-  {
-    sessionId: string, // WatsonX session ID
-    userId: string, // User identifier
-    threadId: string, // OpenAI thread ID
-    messages: [
-      {
-        role: "user" | "assistant",
-        content: string,
-        timestamp: string,
-      },
-    ],
-    lastActivity: timestamp,
-  };
+sessions_n9 / sessions_n6 {
+  sessionId: string, // WatsonX session ID
+  userId: string, // User identifier
+  threadId: string, // OpenAI thread ID
+  messages: [
+    {
+      role: "user" | "assistant",
+      content: string,
+      timestamp: string,
+    },
+  ],
+  lastActivity: timestamp,
+};
 ```
 
 #### 2. Submission Document Structure:
 
 ```javascript
-submissions_n9 /
-  submissions_n6 /
-  {
-    type: string, // Submission type
-    content: string, // Submission content
-    zapierResponse: "Success" | "Failed",
-    sessionId: string, // Related session ID
-    userId: string, // User identifier
-    created: timestamp, // Server timestamp
-  };
+submissions_n9 / submissions_n6 {
+  type: string, // Submission type
+  content: string, // Submission content
+  zapierResponse: "Success" | "Failed",
+  sessionId: string, // Related session ID
+  userId: string, // User identifier
+  created: timestamp, // Server timestamp
+};
 ```
 
 ### Scheduled Functions
@@ -237,9 +236,11 @@ submissions_n9 /
    - Optimizes document search configurations
    - Updates chunking and ranking settings
 
-## Secrets Management
+## Environment Variables
 
-Using Google Cloud Secret Manager for:
+Production environment uses Google Cloud Secret Manager and the following secrets.
+
+If running locally, switch management to use local environment variables and assign the following secrets as variables within a file `.env` in the root of the project.
 
 - `WATSONX_AUTH`: WatsonX webhook authentication
 - `ZAPIER_WEBHOOK`: Story submission webhook URL
@@ -249,16 +250,3 @@ Using Google Cloud Secret Manager for:
 - `GM_DOC_ASSISTANT_ID`: Document Assistant ID
 - `VECTOR_STORE_ID`: Current vector store ID
 - `WEATHER_API_KEY`: Weather API authentication
-
-## Environment Variables
-
-Required in `functions/.env` for local development:
-
-<pre><div class="relative flex flex-col rounded-lg"><div class="text-text-300 absolute pl-3 pt-2.5 text-xs"></div><div class="pointer-events-none sticky my-0.5 ml-0.5 flex items-center justify-end px-1.5 py-1 mix-blend-luminosity top-0"><div class="from-bg-300/90 to-bg-300/70 pointer-events-auto rounded-md bg-gradient-to-b p-0.5 backdrop-blur-md"><button class="flex flex-row items-center gap-1 rounded-md p-1 py-0.5 text-xs transition-opacity delay-100 hover:bg-bg-200 opacity-60 hover:opacity-100"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256" class="text-text-500 mr-px -translate-y-[0.5px]"><path d="M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z"></path></svg><span class="text-text-200 pr-0.5">Copy</span></button></div></div><div><div class="code-block__code !my-0 !rounded-lg !text-sm !leading-relaxed"><code><span><span>WEBHOOK_SECRET=your_webhook_secret
-</span></span><span>OPENAI_SERVICE_API_KEY=your_openai_key
-</span><span>N6_ASSISTANT_ID=your_n6_assistant_id
-</span><span>N9_ASSISTANT_ID=your_n9_assistant_id
-</span><span>GM_DOC_ASSISTANT_ID=your_doc_assistant_id
-</span><span>WEATHER_API_KEY=your_weather_api_key</span></code></div></div></div></pre>
-
-Production environment uses Google Cloud Secret Manager.

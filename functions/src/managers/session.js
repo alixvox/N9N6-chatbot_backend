@@ -10,7 +10,9 @@ const logger = require("../utils/logger");
 
 const db = admin.firestore();
 
-const SESSION_EXPIRY_MS = 180 * 60 * 1000; // 3 hours in milliseconds
+// Expiry and cooldown periods for chat sessions
+const SESSION_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
+const COOLDOWN_PERIOD_MS = 180 * 60 * 1000; // 3 hours in milliseconds
 const MAX_MESSAGES = 20;
 
 /**
@@ -30,79 +32,105 @@ const MAX_MESSAGES = 20;
   }
 
   /**
-   * Deletes a session from Firestore
-   * @param {string} userId - WatsonX user identifier
+   * Gets or creates a user session for a given user and station
+   * @param {string} userId - User identifier
    * @param {string} stationId - Station identifier ('n6' or 'n9')
-   * @return {Promise<boolean>} Success status
+   * @return {Promise<{Object}>} - Session object, document ID, and status
    */
-  async getActiveUserSession(userId, stationId) {
+  async getOrCreateUserSession(userId, stationId) {
     const currentTime = Date.now();
+
+    // Try to find most recent session for this user
     const snapshot = await this._getSessionsRef(stationId)
         .where("userId", "==", userId)
         .orderBy("lastActivity", "desc")
         .limit(1)
         .get();
 
+    // If no previous session exists, create new one
     if (snapshot.empty) {
-      return {session: null, docId: null};
+      const docId = formatCurrentTimeCentral("session");
+      const newSession = {
+        userId,
+        threadId: null,
+        messages: [],
+        lastActivity: currentTime,
+      };
+
+      await this._getSessionsRef(stationId)
+          .doc(docId)
+          .set(newSession);
+
+      logger.info("Created first user session", {
+        userId,
+        stationId,
+        docId,
+      });
+
+      return {
+        session: newSession,
+        docId,
+        status: "active",
+      };
     }
 
+    // Get the most recent session
     const doc = snapshot.docs[0];
-    const session = doc.data();
+    const existingSession = doc.data();
+    const timeSinceLastActivity = currentTime - existingSession.lastActivity;
 
-    // Check if session is expired (1 hour of inactivity)
-    if (currentTime - session.lastActivity > SESSION_EXPIRY_MS) {
-      return {session: null, docId: null};
+    // Count messages in most recent session
+    const messageCount = existingSession.messages.filter(
+        (msg) => msg.role === "user",
+    ).length;
+
+    // Check cooldown if max messages reached
+    if (messageCount >= MAX_MESSAGES &&
+        timeSinceLastActivity <= COOLDOWN_PERIOD_MS) {
+      const remainingCooldown = COOLDOWN_PERIOD_MS - timeSinceLastActivity;
+      return {
+        session: null,
+        docId: null,
+        status: "cooldown",
+        remainingCooldown,
+      };
     }
 
-    return {session, docId: doc.id};
-  }
+    // Check if we need a new session due to expiry
+    if (timeSinceLastActivity > SESSION_EXPIRY_MS) {
+      const docId = formatCurrentTimeCentral("session");
+      const newSession = {
+        userId,
+        threadId: null,
+        messages: [],
+        lastActivity: currentTime,
+      };
 
-  /**
-   * Creates a new session with OpenAI thread
-   * @param {string} userId - User identifier
-   * @param {string} stationId - Station identifier ('n6' or 'n9')
-   * @return {Promise<Session>} Newly created session
-   */
-  async createUserSession(userId, stationId) {
-    const docId = formatCurrentTimeCentral("session");
-    const session = {
-      userId,
-      threadId: null,
-      messages: [],
-      lastActivity: Date.now(),
+      await this._getSessionsRef(stationId)
+          .doc(docId)
+          .set(newSession);
+
+      logger.info("Created new session after expiry", {
+        userId,
+        stationId,
+        docId,
+        previousSessionId: doc.id,
+        timeSinceLastActivity,
+      });
+
+      return {
+        session: newSession,
+        docId,
+        status: "active",
+      };
+    }
+
+    // Session is active and valid
+    return {
+      session: existingSession,
+      docId: doc.id,
+      status: "active",
     };
-
-    await this._getSessionsRef(stationId)
-        .doc(docId)
-        .set(session);
-
-    logger.info("Created new user session", {
-      userId,
-      stationId,
-      docId,
-    });
-
-    return {session, docId};
-  }
-
-  /**
-     * Gets or creates a session for a user
-     * @param {string} userId - User identifier
-     * @param {string} stationId - Station identifier ('n6' or 'n9')
-     * @return {Promise<{session: Object,
-     * docId: string,
-     * isNew: boolean}>} - Session info
-     */
-  async getOrCreateUserSession(userId, stationId) {
-    const {session, docId} = await this.getActiveUserSession(userId, stationId);
-
-    if (session) {
-      return {session, docId, isNew: false};
-    }
-
-    const newSession = await this.createUserSession(userId, stationId);
-    return {...newSession, isNew: true};
   }
 
   /**
@@ -111,23 +139,24 @@ const MAX_MESSAGES = 20;
      * @return {Object} Status object with count and warning message
      */
   checkMessageLimit(session) {
-    const assistantCount = session.messages.filter(
-        (msg) => msg.role === "assistant",
+    // Count the future number of user messages in the session
+    const messageCount = session.messages.filter(
+        (msg) => msg.role === "user",
     ).length;
 
     let warningMessage = null;
-    if (assistantCount === MAX_MESSAGES - 2) {
+    if (messageCount === MAX_MESSAGES - 2) {
       warningMessage = "\n\n[2 more responses remaining for the advanced AI.]";
-    } else if (assistantCount === MAX_MESSAGES - 1) {
+    } else if (messageCount === MAX_MESSAGES - 1) {
       warningMessage = "\n\n[1 more response remaining for the advanced AI.]";
-    } else if (assistantCount === MAX_MESSAGES) {
+    } else if (messageCount === MAX_MESSAGES) {
       warningMessage = "\n\n[Message limit for the advanced AI reached. " +
       "Reverting to the previous model.]";
     }
 
     return {
-      count: assistantCount,
-      hasReachedLimit: assistantCount > MAX_MESSAGES,
+      count: messageCount,
+      hasReachedLimit: messageCount > MAX_MESSAGES,
       warningMessage,
     };
   }
