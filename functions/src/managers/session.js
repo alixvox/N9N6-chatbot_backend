@@ -11,7 +11,7 @@ const logger = require("../utils/logger");
 const db = admin.firestore();
 
 // Expiry and cooldown periods for chat sessions
-const SESSION_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
+const SESSION_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes in milliseconds
 const COOLDOWN_PERIOD_MS = 180 * 60 * 1000; // 3 hours in milliseconds
 const MAX_MESSAGES = 20;
 
