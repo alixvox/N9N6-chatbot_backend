@@ -161,7 +161,7 @@ Manages chat sessions using Firebase Firestore:
 - Runs every Wednesday at midnight (Central Time)
 - Removes data from previous week
 
-### Utilities (src/utils/)
+### Utilities (src/utils)
 
 #### error.js
 
