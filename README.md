@@ -51,7 +51,7 @@ A Firebase-based middleware server that handles chatbot interactions between Wat
    - Webhook verifies secret and extracts session info/message
 2. **Session Management**
    - Create/retrieve session based on userId with timestamp-based ID
-   - Sessions expire after 10 minutes of inactivity
+   - Sessions expire after 5 minutes of inactivity
    - After expiry, new session is created for user when they next interact
    - Limited to 20 total user messages in a session
    - Provides warning messages at user's 18th, 19th, and 20th messages
@@ -145,7 +145,7 @@ Manages chat sessions using Firebase Firestore:
 
 - Creates sessions with timestamp-based IDs (format: "MM-DD-YY at HH-MM-SS AM/PM")
 - Stores message history and thread IDs
-- Enforces 10-minute session expiry
+- Enforces 5-minute session expiry
 - Enforces 3-hour cooldown after reaching message limit
 - No in-memory caching (serverless architecture)
 
